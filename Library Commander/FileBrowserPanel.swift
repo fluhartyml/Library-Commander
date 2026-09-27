@@ -175,12 +175,19 @@ struct FileBrowserPanel: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "externaldrive.fill")
+                    // Names the drive in large type — an icon alone did not say which one.
+                    let volume = fileSystem.currentVolume
+                    HStack(spacing: 6) {
+                        Image(systemName: (volume?.path ?? "/") == "/" ? "internaldrive.fill" : "externaldrive.fill")
+                        Text(volume?.name ?? "Drive")
+                            .font(.title2.bold())
+                            .lineLimit(1)
+                    }
                 }
                 .menuStyle(.borderlessButton)
-                .frame(width: 30)
+                .fixedSize()
                 .padding(.leading, 8)
-                .help("Switch drive or volume")
+                .help("On \(fileSystem.currentVolume?.name ?? "an unknown drive") — click to switch drive or volume")
 
                 // Sort method selector
                 Menu {
@@ -328,7 +335,8 @@ struct FileBrowserPanel: View {
                 // Build 101: a listing is not a folder, so the path bar names the listing.
                 TickerText(text: fileSystem.virtualListing.map { "\($0.title) — \($0.paths.count) items (not a folder)" }
                                  ?? fileSystem.currentPath)
-                    .font(.system(.caption, design: .monospaced))
+                    // Was .caption — "youre text is TOOOOOOOOOOOOOO small" (2026-09-27).
+                    .font(.system(.body, design: .monospaced))
                     .foregroundColor(fileSystem.virtualListing == nil ? .secondary : .orange)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -402,7 +410,7 @@ struct FileBrowserPanel: View {
                     .help("Go up one folder")
                 }
             }
-            .frame(height: 32)
+            .frame(height: 44)
             .background(Color.secondary.opacity(0.1))
 
             Divider()

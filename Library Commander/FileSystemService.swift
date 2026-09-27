@@ -95,6 +95,15 @@ class FileSystemService {
         loadFiles()
     }
 
+    /// The drive this pane is on — the mounted volume whose path is the longest prefix of
+    /// `currentPath`. His ask, 2026-09-27: "make it more obvious what drive each pane is on".
+    var currentVolume: VolumeItem? {
+        let p = (currentPath as NSString).standardizingPath
+        return mountedVolumes
+            .filter { $0.path == "/" || p == $0.path || p.hasPrefix($0.path + "/") }
+            .max { $0.path.count < $1.path.count }
+    }
+
     func loadMountedVolumes() {
         guard let urls = fileManager.mountedVolumeURLs(includingResourceValuesForKeys: [.volumeNameKey], options: [.skipHiddenVolumes]) else {
             mountedVolumes = []
