@@ -62,6 +62,7 @@ struct FileBrowserPanel: View {
     @State private var lastSelectedItem: FileItem?
     @State private var isCreatingNewFolder = false
     @State private var showDrivePicker = false
+    @State private var renameError: String?
     @State private var isCreatingNewFile = false
     @State private var newItemName = "untitled"
     @State private var renamingItem: FileItem?
@@ -152,6 +153,11 @@ struct FileBrowserPanel: View {
                 .help("On \(fileSystem.currentVolume?.name ?? "an unknown drive") — click to switch drive or volume")
                 .popover(isPresented: $showDrivePicker, arrowEdge: .bottom) {
                     drivePicker
+                }
+                .alert("Rename failed", isPresented: Binding(get: { renameError != nil }, set: { if !$0 { renameError = nil } })) {
+                    Button("OK") { renameError = nil }
+                } message: {
+                    Text(renameError ?? "")
                 }
 
                 // Sort method selector
@@ -1502,7 +1508,11 @@ struct FileBrowserPanel: View {
             suppressNextReturn = true
             cancelRename()
         } catch {
-            print("Error renaming item: \(error)")
+            // Build 13: this used to print() and leave his typed name in the box, so a
+            // refused rename looked done ("renamed it to goonies" — the disk never changed).
+            let attempted = renameText
+            cancelRename()
+            renameError = "“\(item.name)” was not renamed to “\(attempted)”.\n\n\(error.localizedDescription)"
         }
     }
 
