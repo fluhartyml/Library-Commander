@@ -95,6 +95,9 @@ struct FileBrowserPanel: View {
     @State private var showUnifiedQueue = false
     @FocusState private var isNewItemFocused: Bool
     @FocusState private var isRenameFocused: Bool
+    /// Build 23: the list takes keyboard focus back when a name field closes — Escape out of
+    /// a rename left focus nowhere, and every arrow key beeped ("bonk bonk").
+    @FocusState private var isListFocused: Bool
 
     // Arrow Key Sorting state
     /// Arrow Key Sorting lives in Accessibility now — one setting for both panes.
@@ -521,6 +524,7 @@ struct FileBrowserPanel: View {
                         }
                     }
                     .focusable()
+                    .focused($isListFocused)
                     .contextMenu {
                         if selectedItems.count > 1 {
                             Button("Open") {
@@ -736,7 +740,8 @@ struct FileBrowserPanel: View {
                             if isRightPane { arrowKeySortMove() } else { undoLastMove() }
                             return .handled
                         }
-                        return .ignored  // Let table handle arrow navigation
+                        // Nothing handles ← / → here; .ignored made macOS beep on every press.
+                        return .handled
                     }
                     .onKeyPress(.rightArrow) {
                         if renamingItem != nil { return .ignored }
@@ -745,7 +750,8 @@ struct FileBrowserPanel: View {
                             if isRightPane { undoLastMove() } else { arrowKeySortMove() }
                             return .handled
                         }
-                        return .ignored  // Let table handle arrow navigation
+                        // Nothing handles ← / → here; .ignored made macOS beep on every press.
+                        return .handled
                     }
                     .onKeyPress(.upArrow) {
                         if renamingItem != nil { return .ignored }
@@ -1507,6 +1513,7 @@ struct FileBrowserPanel: View {
         isCreatingNewFolder = false
         isCreatingNewFile = false
         newItemName = "untitled"
+        DispatchQueue.main.async { isListFocused = true }   // hand the keys back to the list
     }
 
     private func startRenaming(item: FileItem) {
@@ -1540,6 +1547,7 @@ struct FileBrowserPanel: View {
     private func cancelRename() {
         renamingItem = nil
         renameText = ""
+        DispatchQueue.main.async { isListFocused = true }   // hand the keys back to the list
     }
 
     private func selectRange(to item: FileItem) {
