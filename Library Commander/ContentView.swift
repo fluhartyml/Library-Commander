@@ -2,21 +2,1141 @@
 //  ContentView.swift
 //  Library Commander
 //
-//  Created by Michael Fluharty on 9/27/26.
+//  Created by Michael Fluharty on 11/10/25.
 //
 
 import SwiftUI
+import AppKit
+
+enum FocusedPane {
+    case left, right
+}
+
+enum PaneMode {
+    case files, playlist, metadata, preview
+}
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+    // STATE PERSISTENCE - Remember last directories
+    @AppStorage("leftPanePath") private var savedLeftPath: String = NSHomeDirectory()
+    @AppStorage("rightPanePath") private var savedRightPath: String = NSHomeDirectory()
+
+    @State private var leftFileSystem: FileSystemService
+    @State private var rightFileSystem: FileSystemService
+    @State private var serverManager = ServerManager()
+    @State private var leftPlaylistManager = PlaylistManager()
+    @State private var rightPlaylistManager = PlaylistManager()
+    @State private var mediaKeyHandler = MediaKeyHandler()
+    @State private var focusedPane: FocusedPane = .left
+    @State private var selectedLeftItem: FileItem?
+    @State private var selectedRightItem: FileItem?
+    @State private var selectedLeftItems: Set<FileItem.ID> = []
+    @State private var selectedRightItems: Set<FileItem.ID> = []
+    @State private var showTextEditor = false
+    // Build 92 — Operations › Find Duplicate Media…
+    @State private var showDuplicateSweep = false
+    @State private var duplicateFolder: FileItem?
+    @State private var showImagePreview = false
+    @State private var showMetadataEditor = false
+    @State private var previewItem: FileItem?
+    @State private var leftPaneMode: PaneMode = .files
+    @State private var rightPaneMode: PaneMode = .files
+    @State private var leftPreviewMode: PreviewMode = .none
+    @State private var rightPreviewMode: PreviewMode = .none
+    @State private var leftPreviewItem: FileItem?
+    @State private var rightPreviewItem: FileItem?
+    @State private var showShazamSettings = false
+    /// Copy and Move — questions, progress, summary. One operation at a time.
+    @State private var fileOps = FileOperationController()
+    /// Preview area per pane, remembered between launches.
+    @AppStorage("previewShownLeftPane") private var previewLeft = false
+    @AppStorage("previewShownRightPane") private var previewRight = false
+
+    init() {
+        // Initialize FileSystemServices with saved paths
+        let leftPath = UserDefaults.standard.string(forKey: "leftPanePath") ?? NSHomeDirectory()
+        let rightPath = UserDefaults.standard.string(forKey: "rightPanePath") ?? NSHomeDirectory()
+
+        _leftFileSystem = State(initialValue: FileSystemService(startPath: leftPath))
+        _rightFileSystem = State(initialValue: FileSystemService(startPath: rightPath))
     }
+
+    // Left pane media player state
+    @State private var leftCurrentMedia: FileItem?
+    @State private var showLeftMediaPlayer = false
+    @State private var autoPlayNextLeft = true
+    @State private var autoPlayOppositeLeft = false
+    @State private var shouldAutoPlayLeft = false
+    @State private var isLeftPlaying = false
+
+    // Right pane media player state
+    @State private var rightCurrentMedia: FileItem?
+    @State private var showRightMediaPlayer = false
+    @State private var autoPlayNextRight = true
+    @State private var autoPlayOppositeRight = false
+    @State private var shouldAutoPlayRight = false
+    @State private var isRightPlaying = false
+
+    var activeFocusedFileSystem: FileSystemService {
+        focusedPane == .left ? leftFileSystem : rightFileSystem
+    }
+
+    var activeSelectedItem: FileItem? {
+        focusedPane == .left ? selectedLeftItem : selectedRightItem
+    }
+
+    var isPlaylistMode: Bool {
+        (focusedPane == .left && leftPaneMode == .playlist) || (focusedPane == .right && rightPaneMode == .playlist)
+    }
+
+    var copyTooltip: String {
+        isPlaylistMode ? "Copy song to other playlist" : "Copy to “\(otherPaneTargetName)”"
+    }
+
+    var moveTooltip: String {
+        isPlaylistMode ? "Move song to other playlist" : "Move to “\(otherPaneTargetName)”"
+    }
+
+    /// Build 109 — names the real target, so a forgotten highlight shows before anything moves.
+    var otherPaneTargetName: String {
+        URL(fileURLWithPath: otherPaneTargetPath).lastPathComponent
+    }
+
+    var deleteTooltip: String {
+        isPlaylistMode ? "Remove from playlist" : "Delete file"
+    }
+
+    var isEditEnabled: Bool {
+        guard let item = activeSelectedItem else { return false }
+        let fileType = getFileType(for: item)
+
+        if isPlaylistMode {
+            return fileType == .audio || fileType == .video
+        } else {
+            return fileType == .text
+        }
+    }
+
+    func getFileType(for item: FileItem) -> FileType {
+        guard !item.isDirectory else { return .folder }
+        let ext = (item.name as NSString).pathExtension.lowercased()
+
+        // Check for any webloc files (Safari bookmarks, Apple Music links, etc.)
+        if ext == "webloc" {
+            return .webloc
+        } else if ["txt", "md", "rb", "json", "swift", "log", "xml", "yaml", "yml"].contains(ext) {
+            return .text
+        } else if ["mp3", "m4a", "wav", "aiff", "aac", "flac", "ogg"].contains(ext) {
+            return .audio
+        } else if ["mp4", "mov", "m4v", "avi", "mkv"].contains(ext) {
+            return .video
+        } else if ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "heic", "webp"].contains(ext) {
+            return .image
+        } else {
+            return .other
+        }
+    }
+
+    func handleDoubleClick(item: FileItem) {
+        let fileType = getFileType(for: item)
+        previewItem = item
+
+        switch fileType {
+        case .folder:
+            activeFocusedFileSystem.navigateToFolder(item.path)
+            // Clear media player when navigating to a different folder
+            if focusedPane == .left {
+                leftCurrentMedia = nil
+                showLeftMediaPlayer = false
+            } else {
+                rightCurrentMedia = nil
+                showRightMediaPlayer = false
+            }
+        case .text:
+            showTextEditor = true
+        case .audio, .video:
+            startPlayingMedia(item: item)
+        case .image:
+            showImagePreview = true
+        case .webloc:
+            // Check if this is an Apple Music audio link (.media.webloc)
+            let filename = item.name.lowercased()
+            if filename.hasSuffix(".media.webloc") {
+                // Apple Music song/album - play in InPaneMediaPlayer with MusicKit
+                startPlayingMedia(item: item)
+            } else {
+                // Video webloc or regular Safari webloc - open externally
+                let url = URL(fileURLWithPath: item.path)
+                NSWorkspace.shared.open(url)
+            }
+        case .other:
+            break // Do nothing for unknown file types
+        }
+    }
+
+    func startPlayingMedia(item: FileItem) {
+        // Set media for the appropriate pane and auto-play
+        // Force refresh by setting to nil first (handles double-clicking same file)
+        if focusedPane == .left {
+            leftCurrentMedia = nil
+            showLeftMediaPlayer = true
+            shouldAutoPlayLeft = true  // Auto-play on double-click/Enter
+            DispatchQueue.main.async {
+                self.leftCurrentMedia = item
+            }
+        } else {
+            rightCurrentMedia = nil
+            showRightMediaPlayer = true
+            shouldAutoPlayRight = true  // Auto-play on double-click/Enter
+            DispatchQueue.main.async {
+                self.rightCurrentMedia = item
+            }
+        }
+    }
+
+    func switchLeftToRight() {
+        // Start playing first media file in right pane
+        let rightMedia = rightFileSystem.files.filter { file in
+            let type = getFileType(for: file)
+            return type == .audio || type == .video
+        }
+        if let first = rightMedia.first {
+            rightCurrentMedia = first
+            showRightMediaPlayer = true
+            shouldAutoPlayRight = true  // Auto-play when switching panes
+        }
+    }
+
+    func switchRightToLeft() {
+        // Start playing first media file in left pane
+        let leftMedia = leftFileSystem.files.filter { file in
+            let type = getFileType(for: file)
+            return type == .audio || type == .video
+        }
+        if let first = leftMedia.first {
+            leftCurrentMedia = first
+            showLeftMediaPlayer = true
+            shouldAutoPlayLeft = true  // Auto-play when switching panes
+        }
+    }
+
+    func toggleLeftPane() {
+        switch leftPaneMode {
+        case .files:
+            // Switching FROM files TO playlist - populate with media files
+            leftPlaylistManager.clear()
+            let mediaFiles = leftFileSystem.files.filter { file in
+                let type = getFileType(for: file)
+                return type == .audio || type == .video
+            }
+            for file in mediaFiles {
+                leftPlaylistManager.addItem(file)
+            }
+            leftPaneMode = .playlist
+        case .playlist:
+            leftPaneMode = .metadata
+        case .metadata:
+            leftPaneMode = .files
+        case .preview:
+            // Close preview and return to files
+            leftPaneMode = .files
+            leftPreviewItem = nil
+            leftPreviewMode = .none
+        }
+    }
+
+    func toggleRightPane() {
+        switch rightPaneMode {
+        case .files:
+            // Switching FROM files TO playlist - populate with media files
+            rightPlaylistManager.clear()
+            let mediaFiles = rightFileSystem.files.filter { file in
+                let type = getFileType(for: file)
+                return type == .audio || type == .video
+            }
+            for file in mediaFiles {
+                rightPlaylistManager.addItem(file)
+            }
+            rightPaneMode = .playlist
+        case .playlist:
+            rightPaneMode = .metadata
+        case .metadata:
+            rightPaneMode = .files
+        case .preview:
+            // Close preview and return to files
+            rightPaneMode = .files
+            rightPreviewItem = nil
+            rightPreviewMode = .none
+        }
+    }
+
+    // Helper computed properties to reduce type-checking complexity
+    private var leftPaneIcon: String {
+        switch leftPaneMode {
+        case .files: return "music.note.list"
+        case .playlist: return "info.circle"
+        case .metadata: return "folder.fill"
+        case .preview: return "folder.fill"
+        }
+    }
+
+    private var leftPaneLabel: String {
+        switch leftPaneMode {
+        case .files: return "Playlist"
+        case .playlist: return "Metadata"
+        case .metadata: return "Files"
+        case .preview: return "Files"
+        }
+    }
+
+    private var rightPaneIcon: String {
+        switch rightPaneMode {
+        case .files: return "music.note.list"
+        case .playlist: return "info.circle"
+        case .metadata: return "folder.fill"
+        case .preview: return "folder.fill"
+        }
+    }
+
+    private var rightPaneLabel: String {
+        switch rightPaneMode {
+        case .files: return "Playlist"
+        case .playlist: return "Metadata"
+        case .metadata: return "Files"
+        case .preview: return "Files"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Playlist toggle toolbar
+            HStack {
+                // Left pane toggle
+                Button(action: { toggleLeftPane() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: leftPaneIcon)
+                        Text("Left: \(leftPaneLabel)")
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .padding(8)
+
+                Spacer()
+
+                // Right pane toggle
+                Button(action: { toggleRightPane() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: rightPaneIcon)
+                        Text("Right: \(rightPaneLabel)")
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .padding(8)
+            }
+            .background(Color.secondary.opacity(0.05))
+
+            Divider()
+
+            // Dual-pane layout
+            HStack(spacing: 0) {
+                // Left pane - file browser, playlist, metadata, or preview
+                switch leftPaneMode {
+                case .playlist:
+                    PlaylistPanel(
+                        playlistManager: leftPlaylistManager,
+                        isFocused: focusedPane == .left,
+                        onFocus: { focusedPane = .left },
+                        onItemSelect: { item in
+                            selectedLeftItem = item
+                        }
+                    )
+                case .metadata:
+                    // Metadata editor showing info for selected file in RIGHT pane
+                    MetadataEditorPanel(
+                        selectedFile: selectedRightItem,
+                        isFocused: focusedPane == .left,
+                        onFocus: { focusedPane = .left }
+                    )
+                case .preview:
+                    // Preview panel showing file from RIGHT pane
+                    if let item = leftPreviewItem {
+                        PreviewPanel(
+                            fileItem: item,
+                            previewMode: leftPreviewMode,
+                            onClose: {
+                                leftPaneMode = .files
+                                leftPreviewItem = nil
+                                leftPreviewMode = .none
+                            }
+                        )
+                    }
+                case .files:
+                    FileBrowserPanel(
+                        fileSystem: leftFileSystem,
+                        serverManager: serverManager,
+                        isFocused: focusedPane == .left,
+                        onFocus: { focusedPane = .left },
+                        onItemSelect: { item in
+                            selectedLeftItem = item
+                        },
+                        onItemDoubleClick: { item in
+                            focusedPane = .left
+                            selectedLeftItem = item
+                            handleDoubleClick(item: item)
+                        },
+                        onAddToPlaylist: { item in
+                            leftPlaylistManager.addItem(item)
+                        },
+                        currentMedia: $leftCurrentMedia,
+                        showMediaPlayer: $showLeftMediaPlayer,
+                        autoPlayNext: $autoPlayNextLeft,
+                        autoPlayOpposite: $autoPlayOppositeLeft,
+                        shouldAutoPlay: $shouldAutoPlayLeft,
+                        isCurrentlyPlaying: $isLeftPlaying,
+                        onSwitchToOpposite: switchLeftToRight,
+                        getOppositeFirstMediaURL: {
+                            // Get first media file from right pane
+                            let mediaExts = ["mp3", "m4a", "wav", "aiff", "aac", "flac", "ogg", "mp4", "mov", "m4v", "avi", "mkv"]
+                            if let firstMedia = rightFileSystem.files.first(where: { file in
+                                let ext = (file.name as NSString).pathExtension.lowercased()
+                                return mediaExts.contains(ext) || file.name.lowercased().hasSuffix(".media.webloc")
+                            }) {
+                                return URL(fileURLWithPath: firstMedia.path)
+                            }
+                            return nil
+                        },
+                        otherPanePath: targetPath(from: .left),
+                        onRefreshOtherPane: {
+                            leftFileSystem.loadFiles()
+                            rightFileSystem.loadFiles()
+                        },
+                        onNavigateOtherPane: { path in
+                            rightFileSystem.navigateToFolder(path)
+                        },
+                        selectedItems: $selectedLeftItems,
+                        showShazamSettings: $showShazamSettings,
+                        playlistManager: leftPlaylistManager,
+                        showPreview: $previewLeft
+                    )
+                }
+
+                Divider()
+
+                // Right pane - file browser, playlist, metadata, or preview
+                switch rightPaneMode {
+                case .playlist:
+                    PlaylistPanel(
+                        playlistManager: rightPlaylistManager,
+                        isFocused: focusedPane == .right,
+                        onFocus: { focusedPane = .right },
+                        onItemSelect: { item in
+                            selectedRightItem = item
+                        }
+                    )
+                case .metadata:
+                    // Metadata editor showing info for selected file in LEFT pane
+                    MetadataEditorPanel(
+                        selectedFile: selectedLeftItem,
+                        isFocused: focusedPane == .right,
+                        onFocus: { focusedPane = .right }
+                    )
+                case .preview:
+                    // Preview panel showing file from LEFT pane
+                    if let item = rightPreviewItem {
+                        PreviewPanel(
+                            fileItem: item,
+                            previewMode: rightPreviewMode,
+                            onClose: {
+                                rightPaneMode = .files
+                                rightPreviewItem = nil
+                                rightPreviewMode = .none
+                            }
+                        )
+                    }
+                case .files:
+                    FileBrowserPanel(
+                        fileSystem: rightFileSystem,
+                        serverManager: serverManager,
+                        isFocused: focusedPane == .right,
+                        onFocus: { focusedPane = .right },
+                        onItemSelect: { item in
+                            selectedRightItem = item
+                        },
+                        onItemDoubleClick: { item in
+                            focusedPane = .right
+                            selectedRightItem = item
+                            handleDoubleClick(item: item)
+                        },
+                        onAddToPlaylist: { item in
+                            rightPlaylistManager.addItem(item)
+                        },
+                        currentMedia: $rightCurrentMedia,
+                        showMediaPlayer: $showRightMediaPlayer,
+                        autoPlayNext: $autoPlayNextRight,
+                        autoPlayOpposite: $autoPlayOppositeRight,
+                        shouldAutoPlay: $shouldAutoPlayRight,
+                        isCurrentlyPlaying: $isRightPlaying,
+                        onSwitchToOpposite: switchRightToLeft,
+                        getOppositeFirstMediaURL: {
+                            // Get first media file from left pane
+                            let mediaExts = ["mp3", "m4a", "wav", "aiff", "aac", "flac", "ogg", "mp4", "mov", "m4v", "avi", "mkv"]
+                            if let firstMedia = leftFileSystem.files.first(where: { file in
+                                let ext = (file.name as NSString).pathExtension.lowercased()
+                                return mediaExts.contains(ext) || file.name.lowercased().hasSuffix(".media.webloc")
+                            }) {
+                                return URL(fileURLWithPath: firstMedia.path)
+                            }
+                            return nil
+                        },
+                        otherPanePath: targetPath(from: .right),
+                        onRefreshOtherPane: {
+                            leftFileSystem.loadFiles()
+                            rightFileSystem.loadFiles()
+                        },
+                        onNavigateOtherPane: { path in
+                            leftFileSystem.navigateToFolder(path)
+                        },
+                        selectedItems: $selectedRightItems,
+                        showShazamSettings: $showShazamSettings,
+                        playlistManager: rightPlaylistManager,
+                        showPreview: $previewRight
+                    )
+                }
+            }
+
+            Divider()
+
+            // Copies and moves in progress — one bar each, several at once (his spec,
+            // 2026-09-18). Browsing, and starting another, carry on underneath them.
+            // Build 76: a scan starts one bar per top-level folder, so there can be many.
+            // Past three they scroll, so the bars can never crush the panes — last night
+            // four of them pushed the list down to one row.
+            if fileOps.jobs.count > 3 {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(fileOps.jobs) { job in
+                            FileOperationProgressBar(job: job)
+                            Divider()
+                        }
+                    }
+                }
+                .frame(height: 230)
+            } else {
+                ForEach(fileOps.jobs) { job in
+                    FileOperationProgressBar(job: job)
+                    Divider()
+                }
+            }
+            // Build 101 — his ask, 2026-09-20: "yes keep it visible and say idle".
+            // It used to vanish with the work, which meant the one line that says what
+            // Commander is doing was absent exactly when he looked to see IF it was doing
+            // anything. A feedback line that only exists during feedback is not a status bar.
+            FileOperationOverallBar(controller: fileOps)
+            Divider()
+
+            // Command button bar (MC/NC style)
+            HStack(spacing: 0) {
+                CommandButton(label: "View", shortcut: "⌘3") {
+                    viewSelectedItem()
+                }
+                .disabled(activeSelectedItem == nil)
+                .keyboardShortcut("3", modifiers: .command)
+                .help(isPlaylistMode ? "Preview media file" : "Preview file")
+
+                CommandButton(label: "Edit", shortcut: "⌘4") {
+                    editSelectedItem()
+                }
+                .disabled(!isEditEnabled)
+                .keyboardShortcut("4", modifiers: .command)
+                .help(isPlaylistMode ? "Edit metadata" : "Edit text file")
+
+                CommandButton(label: "Copy", shortcut: "⌘5") {
+                    copyToOtherPane()
+                }
+                .disabled(activeSelectedItem == nil)
+                .keyboardShortcut("5", modifiers: .command)
+                .help(copyTooltip)
+
+                CommandButton(label: "Move", shortcut: "⌘6") {
+                    moveToOtherPane()
+                }
+                .disabled(activeSelectedItem == nil)
+                .keyboardShortcut("6", modifiers: .command)
+                .help(moveTooltip)
+
+                CommandButton(label: "New", shortcut: "⌘7") {
+                    createNewFolder()
+                }
+                .keyboardShortcut("7", modifiers: .command)
+                .help("Create new folder")
+                .disabled(isPlaylistMode)
+
+                CommandButton(label: "Delete", shortcut: "⌘8") {
+                    deleteSelectedItem()
+                }
+                .help(deleteTooltip)
+                .disabled(activeSelectedItem == nil)
+                .keyboardShortcut("8", modifiers: .command)
+
+                CommandButton(label: "Rename", shortcut: "⌘9") {
+                    renameSelectedItem()
+                }
+                .disabled(activeSelectedItem == nil)
+                .keyboardShortcut("9", modifiers: .command)
+                .help(isPlaylistMode ? "Rename song display name" : "Rename file")
+            }
+            .frame(height: 44)
+            .background(Color.secondary.opacity(0.08))
+        }
+        // Standard Mac keyboard shortcuts (invisible buttons)
+        .background(
+            Group {
+                Button("Copy") { copyToOtherPane() }
+                    .keyboardShortcut("c", modifiers: .command)
+                    .hidden()
+                Button("Move") { moveToOtherPane() }
+                    .keyboardShortcut("x", modifiers: .command)
+                    .hidden()
+                Button("Delete") { deleteSelectedItem() }
+                    .keyboardShortcut(.delete, modifiers: .command)
+                    .hidden()
+            }
+        )
+        .environment(fileOps)
+        .sheet(item: $fileOps.presented, onDismiss: { fileOps.sheetDismissed() }) { presented in
+            FileOperationSheet(presented: presented, controller: fileOps)
+        }
+        // Build 101 — a run's skipped files, opened in a pane on his word. It lands in the
+        // pane that is NOT focused, so the focused pane stays on the folder he is moving them
+        // TO: select in the listing, press Move, and they go across. That is the whole design
+        // and it needed no change to the move itself.
+        .onChange(of: fileOps.paneListingRequest) { _, request in
+            guard let request else { return }
+            let destination = focusedPane == .left ? rightFileSystem : leftFileSystem
+            destination.showVirtualListing(title: request.title,
+                                           paths: request.paths,
+                                           reasons: request.reasons)
+            fileOps.paneListingRequest = nil
+        }
+        .onAppear {
+            fileOps.onDiskChanged = {
+                leftFileSystem.refreshInPlace()
+                rightFileSystem.refreshInPlace()
+            }
+            fileOps.onReveal = { folder in
+                if focusedPane == .left { leftFileSystem.navigateToFolder(folder.path) }
+                else { rightFileSystem.navigateToFolder(folder.path) }
+            }
+        }
+        // While anything runs, every few seconds re-read a pane whose folder a job is
+        // emptying or filling — his report: a pane kept showing 731 files a Move had
+        // already taken. Panes elsewhere are left alone.
+        .task(id: fileOps.isRunning) {
+            while fileOps.isRunning && !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3))
+                refreshPanesTouchedByJobs()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .undoLastMove)) { _ in
+            fileOps.offerUndoLastMove()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .flattenCopy)) { _ in
+            flattenToOtherPane(.copy)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .flattenMove)) { _ in
+            flattenToOtherPane(.move)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .extractFromLibrary)) { _ in
+            extractToOtherPane()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .findDuplicates)) { _ in
+            findDuplicates()
+        }
+        .sheet(isPresented: $showDuplicateSweep) {
+            if let folder = duplicateFolder {
+                DuplicateSweepDialog(folder: folder, fileOps: fileOps,
+                                     onComplete: { refreshPanesTouchedByJobs() },
+                                     isPresented: $showDuplicateSweep)
+            } else {
+                // ⛔ BUILD 105. Written as `if let` inside the sheet, this branch
+                // rendered NOTHING when the optional was nil — and the Close button
+                // lives inside the `if let`, so it vanished with the content. That is
+                // a modal with no way out and Force Quit as the only exit. Whatever
+                // state gets us here, there is always a door now.
+                SheetRecovery { showDuplicateSweep = false }
+            }
+        }
+        .sheet(isPresented: $showTextEditor) {
+            if let item = previewItem {
+                TextFileEditor(
+                    filePath: item.path,
+                    fileName: item.name,
+                    onClose: {
+                        showTextEditor = false
+                    }
+                )
+            } else {
+                // ⛔ BUILD 105. Written as `if let` inside the sheet, this branch
+                // rendered NOTHING when the optional was nil — and the Close button
+                // lives inside the `if let`, so it vanished with the content. That is
+                // a modal with no way out and Force Quit as the only exit. Whatever
+                // state gets us here, there is always a door now.
+                SheetRecovery { showTextEditor = false }
+            }
+        }
+        .sheet(isPresented: $showImagePreview) {
+            if let item = previewItem {
+                ImagePreview(
+                    filePath: item.path,
+                    fileName: item.name,
+                    onClose: {
+                        showImagePreview = false
+                    }
+                )
+            } else {
+                // ⛔ BUILD 105. Written as `if let` inside the sheet, this branch
+                // rendered NOTHING when the optional was nil — and the Close button
+                // lives inside the `if let`, so it vanished with the content. That is
+                // a modal with no way out and Force Quit as the only exit. Whatever
+                // state gets us here, there is always a door now.
+                SheetRecovery { showImagePreview = false }
+            }
+        }
+        .sheet(isPresented: $showMetadataEditor) {
+            if let item = previewItem {
+                MetadataEditor(
+                    filePath: item.path,
+                    fileName: item.name,
+                    onClose: {
+                        showMetadataEditor = false
+                    }
+                )
+            } else {
+                // ⛔ BUILD 105. Written as `if let` inside the sheet, this branch
+                // rendered NOTHING when the optional was nil — and the Close button
+                // lives inside the `if let`, so it vanished with the content. That is
+                // a modal with no way out and Force Quit as the only exit. Whatever
+                // state gets us here, there is always a door now.
+                SheetRecovery { showMetadataEditor = false }
+            }
+        }
+        // STATE PERSISTENCE - Save paths whenever they change
+        .onChange(of: leftFileSystem.currentPath) { oldValue, newValue in
+            savedLeftPath = newValue
+        }
+        .onChange(of: rightFileSystem.currentPath) { oldValue, newValue in
+            savedRightPath = newValue
+        }
+        // PREVIEW PANEL UPDATES - Update preview when selection changes in active pane
+        .onChange(of: selectedLeftItems) { oldValue, newValue in
+            // If right pane is showing preview, update it when left selection changes
+            guard rightPaneMode == .preview else { return }
+            guard let selectedID = newValue.first else { return }
+            guard let selectedFile = leftFileSystem.files.first(where: { $0.id == selectedID }) else { return }
+
+            // Determine preview mode based on file type
+            let fileType = getFileType(for: selectedFile)
+            let previewMode: PreviewMode
+            switch fileType {
+            case .image:
+                previewMode = .image
+            case .text:
+                previewMode = .text
+            case .audio:
+                previewMode = .audio
+            case .video:
+                previewMode = .video
+            default:
+                previewMode = .other
+            }
+
+            // Update right preview
+            rightPreviewMode = previewMode
+            rightPreviewItem = selectedFile
+        }
+        .onChange(of: selectedRightItems) { oldValue, newValue in
+            // If left pane is showing preview, update it when right selection changes
+            guard leftPaneMode == .preview else { return }
+            guard let selectedID = newValue.first else { return }
+            guard let selectedFile = rightFileSystem.files.first(where: { $0.id == selectedID }) else { return }
+
+            // Determine preview mode based on file type
+            let fileType = getFileType(for: selectedFile)
+            let previewMode: PreviewMode
+            switch fileType {
+            case .image:
+                previewMode = .image
+            case .text:
+                previewMode = .text
+            case .audio:
+                previewMode = .audio
+            case .video:
+                previewMode = .video
+            default:
+                previewMode = .other
+            }
+
+            // Update left preview
+            leftPreviewMode = previewMode
+            leftPreviewItem = selectedFile
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openShazamSettings)) { _ in
+            showShazamSettings = true
+        }
+        .onAppear {
+            // Wire up hardware media key controls
+            mediaKeyHandler.onPlayPause = {
+                // Toggle play/pause for whichever pane is currently playing
+                if self.isLeftPlaying {
+                    // Toggle left playback state
+                    self.isLeftPlaying = false
+                    self.shouldAutoPlayLeft = false
+                    // Force refresh
+                    let media = self.leftCurrentMedia
+                    self.leftCurrentMedia = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        self.leftCurrentMedia = media
+                    }
+                } else if self.isRightPlaying {
+                    // Toggle right playback state
+                    self.isRightPlaying = false
+                    self.shouldAutoPlayRight = false
+                    // Force refresh
+                    let media = self.rightCurrentMedia
+                    self.rightCurrentMedia = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        self.rightCurrentMedia = media
+                    }
+                } else if self.showLeftMediaPlayer && self.leftCurrentMedia != nil {
+                    // Left player visible but paused - start playing
+                    self.isLeftPlaying = true
+                    self.shouldAutoPlayLeft = true
+                    let media = self.leftCurrentMedia
+                    self.leftCurrentMedia = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        self.leftCurrentMedia = media
+                    }
+                } else if self.showRightMediaPlayer && self.rightCurrentMedia != nil {
+                    // Right player visible but paused - start playing
+                    self.isRightPlaying = true
+                    self.shouldAutoPlayRight = true
+                    let media = self.rightCurrentMedia
+                    self.rightCurrentMedia = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        self.rightCurrentMedia = media
+                    }
+                }
+            }
+
+            mediaKeyHandler.onNext = {
+                // Play next track in the pane that's currently playing or visible
+                // Simulate down arrow press when playing
+                print("⏭️ Media key: Next track")
+                // This functionality is handled by arrow keys in FileBrowserPanel
+                // We can't directly call those functions from here, so this is informational
+            }
+
+            mediaKeyHandler.onPrevious = {
+                // Play previous track in the pane that's currently playing or visible
+                print("⏮️ Media key: Previous track")
+                // This functionality is handled by arrow keys in FileBrowserPanel
+                // We can't directly call those functions from here, so this is informational
+            }
+        }
+        .onChange(of: leftCurrentMedia) { oldValue, newValue in
+            // Update Now Playing info when left media changes
+            if let media = newValue, showLeftMediaPlayer {
+                mediaKeyHandler.updateNowPlaying(
+                    title: media.name,
+                    artist: nil,
+                    artwork: nil
+                )
+            } else if newValue == nil {
+                mediaKeyHandler.clearNowPlaying()
+            }
+        }
+        .onChange(of: rightCurrentMedia) { oldValue, newValue in
+            // Update Now Playing info when right media changes
+            if let media = newValue, showRightMediaPlayer {
+                mediaKeyHandler.updateNowPlaying(
+                    title: media.name,
+                    artist: nil,
+                    artwork: nil
+                )
+            } else if newValue == nil && leftCurrentMedia == nil {
+                mediaKeyHandler.clearNowPlaying()
+            }
+        }
+    }
+
+    private func deleteSelectedItem() {
+        let selectedIDs = focusedPane == .left ? selectedLeftItems : selectedRightItems
+        let itemsToDelete = activeFocusedFileSystem.files.filter { selectedIDs.contains($0.id) }
+        guard !itemsToDelete.isEmpty else { return }
+
+        // Build 70: a job with its own bar, off the main thread (see FileOperationEngine.runDelete).
+        fileOps.delete(itemsToDelete.map { URL(fileURLWithPath: $0.path) })
+
+        // Clear selection
+        if focusedPane == .left {
+            selectedLeftItem = nil
+            selectedLeftItems.removeAll()
+        } else {
+            selectedRightItem = nil
+            selectedRightItems.removeAll()
+        }
+    }
+
+    // MARK: - Command Button Actions
+
+    private func viewSelectedItem() {
+        guard let item = activeSelectedItem else { return }
+
+        let fileType = getFileType(for: item)
+        let previewMode: PreviewMode
+
+        // Determine preview mode based on file type
+        switch fileType {
+        case .image:
+            previewMode = .image
+        case .text:
+            previewMode = .text
+        case .audio:
+            previewMode = .audio
+        case .video:
+            previewMode = .video
+        default:
+            previewMode = .other
+        }
+
+        // Toggle opposite pane to preview mode
+        if focusedPane == .left {
+            // Active pane is left, show preview in right pane
+            rightPreviewMode = previewMode
+            rightPreviewItem = item
+            rightPaneMode = .preview
+        } else {
+            // Active pane is right, show preview in left pane
+            leftPreviewMode = previewMode
+            leftPreviewItem = item
+            leftPaneMode = .preview
+        }
+    }
+
+    private func editSelectedItem() {
+        guard let item = activeSelectedItem else { return }
+        let fileType = getFileType(for: item)
+
+        if isPlaylistMode {
+            // In playlist mode, edit metadata for media files
+            if fileType == .audio || fileType == .video {
+                previewItem = item
+                showMetadataEditor = true
+            }
+        } else {
+            // In file mode, edit text files
+            if fileType == .text {
+                previewItem = item
+                showTextEditor = true
+            }
+        }
+    }
+
+    /// Build 109 — his ask: *"make highlighted folder the target opening takes too long if you
+    /// have many files to sort"*. Exactly ONE folder highlighted in the other pane is the target;
+    /// anything else (nothing, a file, several items) falls back to the folder open there.
+    private var otherPaneTargetPath: String { targetPath(from: focusedPane) }
+
+    /// The target for anything sent out of `source` — the bottom bar and each pane's right-click.
+    private func targetPath(from source: FocusedPane) -> String {
+        let other = source == .left ? rightFileSystem : leftFileSystem
+        let ids = source == .left ? selectedRightItems : selectedLeftItems
+        if ids.count == 1, let id = ids.first,
+           let item = other.files.first(where: { $0.id == id }), item.isDirectory {
+            return item.path
+        }
+        return other.currentPath
+    }
+
+    /// Copy the selection from the focused pane (source) to the other pane (target).
+    /// Every clash is asked about first — see FileOperationEngine.swift.
+    private func copyToOtherPane() {
+        let selectedIDs = focusedPane == .left ? selectedLeftItems : selectedRightItems
+        let sourceFiles = activeFocusedFileSystem.files.filter { selectedIDs.contains($0.id) }
+        guard !sourceFiles.isEmpty else { return }
+        let targetPath = otherPaneTargetPath
+
+        fileOps.start(.copy,
+                      sources: sourceFiles.map { URL(fileURLWithPath: $0.path) },
+                      target: URL(fileURLWithPath: targetPath))
+    }
+
+    /// Move the selection from the focused pane (source) to the other pane (target).
+    ///
+    /// ⚠️ Until build 55 this called `moveItem` per file on the main thread: a same-named
+    /// item in the target failed with a console print, and a big move froze the window.
+    private func moveToOtherPane() {
+        let pane = focusedPane
+        let selectedIDs = pane == .left ? selectedLeftItems : selectedRightItems
+        let targetPath = otherPaneTargetPath
+        let sourceFiles = activeFocusedFileSystem.files.filter { selectedIDs.contains($0.id) }
+        guard !sourceFiles.isEmpty else { return }
+
+        // DJ CURATION: moving the track that is playing stops it, and the next one plays
+        // once the move is done — but only if it really left (it may have been skipped).
+        let currentMedia = pane == .left ? leftCurrentMedia : rightCurrentMedia
+        var movedPlaying: FileItem? = nil
+        var nextTrackName: String? = nil
+        if let media = currentMedia, sourceFiles.contains(where: { $0.path == media.path }) {
+            movedPlaying = media
+            let mediaFiles = activeFocusedFileSystem.files.filter { file in
+                let type = getFileType(for: file)
+                return type == .audio || type == .video
+            }
+            if let i = mediaFiles.firstIndex(where: { $0.path == media.path }), i + 1 < mediaFiles.count {
+                nextTrackName = mediaFiles[i + 1].name
+            }
+            if pane == .left {
+                leftCurrentMedia = nil
+                showLeftMediaPlayer = false
+            } else {
+                rightCurrentMedia = nil
+                showRightMediaPlayer = false
+            }
+        }
+
+        fileOps.start(.move,
+                      sources: sourceFiles.map { URL(fileURLWithPath: $0.path) },
+                      target: URL(fileURLWithPath: targetPath)) { _ in
+            // Only what THIS move took leaves the selection — another may be being picked.
+            clearSelection(pane, of: sourceFiles)
+            if let played = movedPlaying, !FileManager.default.fileExists(atPath: played.path) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    playNextTrackInFocusedPane(preferredTrackName: nextTrackName)
+                }
+            }
+        }
+    }
+
+    /// Plan 7.1 — every file under the selected folders (source pane) straight into the other
+    /// pane's folder (target), with no subfolders. Libraries go across whole.
+    private func flattenToOtherPane(_ kind: FileOpKind) {
+        let pane = focusedPane
+        let selectedIDs = pane == .left ? selectedLeftItems : selectedRightItems
+        let targetPath = otherPaneTargetPath
+        let sourceFiles = activeFocusedFileSystem.files.filter { selectedIDs.contains($0.id) }
+        guard !sourceFiles.isEmpty else { return }
+        fileOps.start(kind,
+                      sources: sourceFiles.map { URL(fileURLWithPath: $0.path) },
+                      target: URL(fileURLWithPath: targetPath), mode: .flatten) { _ in
+            guard kind == .move else { return }
+            clearSelection(pane, of: sourceFiles)
+        }
+    }
+
+    /// Build 92 — Operations › Find Duplicate Media… Sweeps the folder open in the focused
+    /// pane (or the one selected in it) for files with the same contents under different
+    /// names, which a clash popup can never see. Read-only until he presses the button.
+    private func findDuplicates() {
+        let pane = focusedPane
+        let path = pane == .left ? leftFileSystem.currentPath : rightFileSystem.currentPath
+        let folder = activeSelectedItem?.isDirectory == true ? activeSelectedItem! :
+            FileItem(name: (path as NSString).lastPathComponent, path: path, isDirectory: true,
+                     size: 0, modificationDate: Date(), creationDate: Date())
+        duplicateFolder = folder
+        showDuplicateSweep = true
+    }
+
+    /// Plan 7.6 — the Photos library selected in the source pane, out into the other pane's
+    /// folder under real names and dates. Asks Copy or Move and the file type first.
+    private func extractToOtherPane() {
+        guard let item = activeSelectedItem else { return }
+        let targetPath = focusedPane == .left ? rightFileSystem.currentPath : leftFileSystem.currentPath
+        fileOps.offerExtract(library: URL(fileURLWithPath: item.path), target: URL(fileURLWithPath: targetPath))
+    }
+
+    /// After a move: take the items it moved out of that pane's selection, and nothing else.
+    private func clearSelection(_ pane: FocusedPane, of items: [FileItem]) {
+        let ids = Set(items.map(\.id))
+        if pane == .left {
+            if let s = selectedLeftItem, ids.contains(s.id) { selectedLeftItem = nil }
+            selectedLeftItems.subtract(ids)
+        } else {
+            if let s = selectedRightItem, ids.contains(s.id) { selectedRightItem = nil }
+            selectedRightItems.subtract(ids)
+        }
+    }
+
+    /// Re-read each pane whose folder lies inside, or holds, anything a running job touches.
+    private func refreshPanesTouchedByJobs() {
+        for fs in [leftFileSystem, rightFileSystem] {
+            let here = URL(fileURLWithPath: fs.currentPath)
+            let touched = fileOps.jobs.contains { job in
+                job.footprint.contains { FileOperationController.overlaps($0, here) }
+            }
+            if touched { fs.refreshInPlace() }
+        }
+    }
+
+    private func playNextTrackInFocusedPane(preferredTrackName: String? = nil) {
+        let mediaFiles = activeFocusedFileSystem.files.filter { file in
+            let type = getFileType(for: file)
+            return type == .audio || type == .video
+        }
+
+        // Try to find the preferred track first (the one that was next before the move)
+        var trackToPlay: FileItem? = nil
+        if let preferredName = preferredTrackName {
+            trackToPlay = mediaFiles.first { $0.name == preferredName }
+            if trackToPlay != nil {
+                print("Playing preferred next track: \(preferredName)")
+            }
+        }
+
+        // If no preferred track or it wasn't found, play the first available
+        if trackToPlay == nil {
+            trackToPlay = mediaFiles.first
+            if let first = trackToPlay {
+                print("Playing first available track: \(first.name)")
+            }
+        }
+
+        guard let track = trackToPlay else {
+            print("No more tracks to play")
+            return
+        }
+
+        // Select and play the track with slight delay to let file list update
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if self.focusedPane == .left {
+                self.selectedLeftItem = track
+                self.selectedLeftItems = [track.id]
+            } else {
+                self.selectedRightItem = track
+                self.selectedRightItems = [track.id]
+            }
+            self.handleDoubleClick(item: track)
+        }
+    }
+
+    private func createNewFolder() {
+        // Build 108 — this was a print() and nothing else, so ⌘7 never made a folder.
+        // The focused FileBrowserPanel picks this up and opens its inline name field.
+        NotificationCenter.default.post(name: .newFolderInFocusedPane, object: nil)
+    }
+
+    private func renameSelectedItem() {
+        // Trigger rename in the active pane
+        // This will be handled by FileBrowserPanel's rename functionality
+        print("Rename - handled by panel context menu")
+    }
+}
+
+
+enum FileType {
+    case folder, text, audio, video, image, webloc, other
 }
 
 #Preview {
