@@ -335,8 +335,8 @@ struct FileBrowserPanel: View {
                 // Build 101: a listing is not a folder, so the path bar names the listing.
                 TickerText(text: fileSystem.virtualListing.map { "\($0.title) — \($0.paths.count) items (not a folder)" }
                                  ?? fileSystem.currentPath)
-                    // Was .caption — "youre text is TOOOOOOOOOOOOOO small" (2026-09-27).
-                    .font(.system(.body, design: .monospaced))
+                    // Was .caption, then .body — both "too small" (2026-09-27).
+                    .font(.system(.title3, design: .monospaced))
                     .foregroundColor(fileSystem.virtualListing == nil ? .secondary : .orange)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -2078,6 +2078,9 @@ struct TickerText: View {
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
                 .offset(x: offset)
+                // A GeometryReader pins its content to the top edge — "floating at the top
+                // of the textbox". Fill the height and centre it vertically.
+                .frame(maxHeight: .infinity, alignment: .leading)
                 .background(
                     GeometryReader { textGeometry in
                         Color.clear
