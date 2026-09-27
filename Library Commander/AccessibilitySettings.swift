@@ -126,14 +126,15 @@ struct AccessibilitySettingsView: View {
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Questions")
+                        // "Questions" read like a feedback form — his pick is the button's own words.
+                        Text("Reset All “Don’t Ask Again”")
                         Text(settings.anyQuestionSilenced
                              ? "Some questions and messages are set to “Don’t ask again”."
                              : "Every question and message is showing.")
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Reset All “Don’t Ask Again”") { settings.resetAllDontAskAgain() }
+                    Button("Reset") { settings.resetAllDontAskAgain() }
                         .disabled(!settings.anyQuestionSilenced)
                 }
             }
