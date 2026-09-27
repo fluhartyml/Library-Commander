@@ -210,6 +210,11 @@ final class FileOperationController {
         let anyPermanent = items.contains {
             ((try? $0.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal ?? true) == false
         }
+        // "Don't ask again" skips the question for Trash deletes only — permanent ones always ask.
+        if !anyPermanent && AccessibilitySettings.shared.skipDeleteConfirm {
+            performDelete(items, onFinish: onFinish)
+            return
+        }
         show(.deleteConfirm(DeleteRequest(items: items, lines: lines, anyPermanent: anyPermanent,
                                           onFinish: onFinish)), for: nil)
     }

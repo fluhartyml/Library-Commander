@@ -49,6 +49,7 @@ struct FileOperationSheet: View {
 private struct DeleteConfirmView: View {
     let request: FileOperationController.DeleteRequest
     let controller: FileOperationController
+    @State private var dontAskAgain = false
 
     private var title: String {
         let what = request.items.count == 1 ? "“\(request.lines[0].name)”" : "\(request.items.count) items"
@@ -81,12 +82,20 @@ private struct DeleteConfirmView: View {
                 .font(.lc(18))
                 .foregroundStyle(request.anyPermanent ? Color.red : Color.secondary)
             HStack {
+                // His ask: "it needs a check box to never ask again". Not offered for a
+                // permanent (network) delete — that one always asks.
+                if !request.anyPermanent {
+                    Toggle("Don’t ask again", isOn: $dontAskAgain)
+                        .toggleStyle(.checkbox)
+                        .help("Undo it in Library Commander › Accessibility… › Reset All “Don’t Ask Again”.")
+                }
                 Spacer()
                 Button("Cancel") { controller.answerDelete(request, go: false) }
                     .keyboardShortcut(.cancelAction)
                     .controlSize(.large)
                 // No Return shortcut on purpose — a delete takes a click, never a stray key.
                 Button(request.anyPermanent ? "Delete Permanently" : "Move to Trash", role: .destructive) {
+                    if dontAskAgain { AccessibilitySettings.shared.skipDeleteConfirm = true }
                     controller.answerDelete(request, go: true)
                 }
                 .controlSize(.large)
@@ -910,7 +919,7 @@ private struct SummaryView: View {
                 if summary.isRoutine {
                     Toggle("Don’t tell me again after a \(summary.kind.verb)", isOn: $dontTellAgain)
                         .toggleStyle(.checkbox)
-                        .help("Turn these back on with Operations › Show Finished Summaries Again. Anything that fails or is skipped still shows.")
+                        .help("Turn these back on in Library Commander › Accessibility… › Reset All “Don’t Ask Again” (or Operations › Show Finished Summaries Again). Anything that fails or is skipped still shows.")
                 }
                 Spacer()
                 Button("Done") {

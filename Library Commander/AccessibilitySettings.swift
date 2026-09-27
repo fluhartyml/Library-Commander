@@ -40,10 +40,31 @@ final class AccessibilitySettings {
     /// Multiplier applied to every `.lc(...)` size.
     var scale: Double { textSize / Self.baseline }
 
+    /// Build 15 — "Don't ask again" on the delete question. Trash deletes only: a network
+    /// delete is permanent and always asks.
+    var skipDeleteConfirm: Bool {
+        didSet { UserDefaults.standard.set(skipDeleteConfirm, forKey: "skipDeleteConfirm") }
+    }
+
+    /// True when any "Don't ask again" / "Don't tell me again" box has been ticked.
+    var anyQuestionSilenced: Bool {
+        _ = resetTick
+        return skipDeleteConfirm || [FileOpKind.copy, .move, .delete].contains { QuietSummaries.isQuiet($0) }
+    }
+    private var resetTick = 0
+
+    /// His ask: "the settings nneeds a reset never ask again check boxes everywhere".
+    func resetAllDontAskAgain() {
+        skipDeleteConfirm = false
+        QuietSummaries.showAllAgain()
+        resetTick += 1
+    }
+
     private init() {
         let saved = UserDefaults.standard.double(forKey: "textSize")
         textSize = saved == 0 ? Self.baseline : min(max(saved, Self.range.lowerBound), Self.range.upperBound)
         nuclearMode = UserDefaults.standard.bool(forKey: "nuclearMode")
+        skipDeleteConfirm = UserDefaults.standard.bool(forKey: "skipDeleteConfirm")
     }
 }
 
@@ -93,6 +114,20 @@ struct AccessibilitySettingsView: View {
                 Text("↑ and ↓ step through tracks. The arrow pointing at the other pane moves the playing track there and plays the next one; the arrow pointing away undoes the last move.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            Section {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Questions")
+                        Text(settings.anyQuestionSilenced
+                             ? "Some questions and messages are set to “Don’t ask again”."
+                             : "Every question and message is showing.")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Reset All “Don’t Ask Again”") { settings.resetAllDontAskAgain() }
+                        .disabled(!settings.anyQuestionSilenced)
+                }
             }
         }
         .formStyle(.grouped)
