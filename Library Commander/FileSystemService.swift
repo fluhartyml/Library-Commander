@@ -32,7 +32,12 @@ class FileSystemService {
     var errorMessage: String?
     var mountedVolumes: [VolumeItem] = []
     var lastVisitedFolder: String? = nil // Track folder we came from for scroll restoration
-    var sortMethod: FileSortMethod = .none
+    /// Build 24 — remembered per pane. His question: "does it reset the sort filter for every
+    /// build? i keep having to select sort by name". It reset on every launch.
+    var sortMethod: FileSortMethod = .none {
+        didSet { if let sortKey { UserDefaults.standard.set(sortMethod.rawValue, forKey: sortKey) } }
+    }
+    private let sortKey: String?
 
     // MARK: - Virtual listing (build 101)
 
@@ -92,8 +97,13 @@ class FileSystemService {
     /// The last folder that opened — where a cancelled sandbox request returns to.
     private var lastReadablePath: String? = nil
 
-    init(startPath: String = NSHomeDirectory()) {
+    init(startPath: String = NSHomeDirectory(), sortKey: String? = nil) {
         SandboxAccess.restoreSavedGrants()   // reopen drives he granted before
+        self.sortKey = sortKey
+        if let sortKey, let raw = UserDefaults.standard.string(forKey: sortKey),
+           let saved = FileSortMethod(rawValue: raw) {
+            self.sortMethod = saved
+        }
         self.currentPath = startPath
         loadMountedVolumes()
         loadFiles()
