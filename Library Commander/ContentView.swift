@@ -66,6 +66,7 @@ struct ContentView: View {
     @State private var showLeftMediaPlayer = false
     @State private var autoPlayNextLeft = true
     @State private var autoPlayOppositeLeft = false
+    @State private var crossfadeLeft = false
     @State private var shouldAutoPlayLeft = false
     @State private var isLeftPlaying = false
 
@@ -74,6 +75,7 @@ struct ContentView: View {
     @State private var showRightMediaPlayer = false
     @State private var autoPlayNextRight = true
     @State private var autoPlayOppositeRight = false
+    @State private var crossfadeRight = false
     @State private var shouldAutoPlayRight = false
     @State private var isRightPlaying = false
 
@@ -393,6 +395,7 @@ struct ContentView: View {
                         showMediaPlayer: $showLeftMediaPlayer,
                         autoPlayNext: $autoPlayNextLeft,
                         autoPlayOpposite: $autoPlayOppositeLeft,
+                        crossfadeEnabled: $crossfadeLeft,
                         shouldAutoPlay: $shouldAutoPlayLeft,
                         isCurrentlyPlaying: $isLeftPlaying,
                         onSwitchToOpposite: switchLeftToRight,
@@ -476,6 +479,7 @@ struct ContentView: View {
                         showMediaPlayer: $showRightMediaPlayer,
                         autoPlayNext: $autoPlayNextRight,
                         autoPlayOpposite: $autoPlayOppositeRight,
+                        crossfadeEnabled: $crossfadeRight,
                         shouldAutoPlay: $shouldAutoPlayRight,
                         isCurrentlyPlaying: $isRightPlaying,
                         onSwitchToOpposite: switchRightToLeft,
