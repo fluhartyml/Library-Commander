@@ -176,7 +176,7 @@ struct FullscreenVisualizerContent: View {
                 HStack {
                     Spacer()
                     Text("Press ESC to close • Click to change visualizer")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.white.opacity(0.5))
                         .padding()
                 }
@@ -218,7 +218,7 @@ struct FullscreenVisualizerButton: View {
                 Divider()
 
                 Text("Open on Screen:")
-                    .font(.caption)
+                    .font(.system(size: 18))
 
                 ForEach(Array(manager.availableScreens.enumerated()), id: \.offset) { index, screen in
                     Button(action: {

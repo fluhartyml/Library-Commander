@@ -23,7 +23,7 @@ struct ShazamResultsDialog: View {
 
             // Title
             Text("Shazam Complete")
-                .font(.title2)
+                .font(.system(size: 22))
                 .fontWeight(.semibold)
 
             Divider()
@@ -68,11 +68,11 @@ struct ShazamResultsDialog: View {
             if matchedCount > 0 {
                 if genreReviewCount > 0 || queuedCount > 0 {
                     Text("Matched files have been renamed. Review queue to complete remaining files.")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 } else {
                     Text("All files have been successfully processed and renamed.")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
             }

@@ -64,7 +64,7 @@ struct LibraryCommanderView: View {
                 .fill(library.isWorking ? Color.blue : Color.green)
                 .frame(width: 8, height: 8)
             Text(footerMessage)
-                .font(.system(size: 12))
+                .font(.system(size: 18))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)

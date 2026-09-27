@@ -33,11 +33,11 @@ struct DuplicateSweepDialog: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Find Duplicate Media").font(.title2).bold()
+            Text("Find Duplicate Media").font(.system(size: 22)).bold()
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Text("Looks for files with the **same contents** in “\(folder.name)”, whatever they are named. Files of different sizes are never read — only same-size files are compared, byte for byte.")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.system(size: 18)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if phase == .scanning {
@@ -80,11 +80,11 @@ struct DuplicateSweepDialog: View {
 
     private var scanning: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ProgressView().controlSize(.small)
+            ProgressView().controlSize(.regular)
             Text("\(finder.checkedCount) files looked at · \(finder.comparedCount) compared")
-                .font(.subheadline)
+                .font(.system(size: 18))
             if !finder.currentPath.isEmpty {
-                Text(finder.currentPath).font(.caption).foregroundStyle(.secondary)
+                Text(finder.currentPath).font(.system(size: 18)).foregroundStyle(.secondary)
                     .lineLimit(1).truncationMode(.middle)
             }
             Spacer()
@@ -96,46 +96,46 @@ struct DuplicateSweepDialog: View {
     private var review: some View {
         VStack(alignment: .leading, spacing: 10) {
             if finder.groups.isEmpty {
-                Text("No duplicates found.").font(.headline)
+                Text("No duplicates found.").font(.system(size: 18, weight: .semibold))
                 Text("\(finder.checkedCount) files were looked at. Every file in here is one of a kind, by contents.")
                     .foregroundStyle(.secondary)
             } else {
                 Text("\(finder.groups.count) set\(finder.groups.count == 1 ? "" : "s") of duplicates · \(finder.duplicateCount) extra cop\(finder.duplicateCount == 1 ? "y" : "ies") · \(Self.bytes(finder.wastedBytes)) to reclaim")
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .semibold))
                 Text("The copy kept is the one already inside your media folder; failing that, the one nearest the top of the tree, then the oldest. The rest go to the Trash.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.system(size: 18)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if !finder.unreadable.isEmpty {
                 Text("⚠️ \(finder.unreadable.count) file\(finder.unreadable.count == 1 ? " was" : "s were") unreadable and left alone — they are not counted as duplicates.")
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.system(size: 18)).foregroundStyle(.orange)
             }
 
             List(finder.groups) { group in
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(group.keep.lastPathComponent).font(.headline).lineLimit(1).truncationMode(.middle)
-                        Text("kept").font(.caption).padding(.horizontal, 5).padding(.vertical, 1)
+                        Text(group.keep.lastPathComponent).font(.system(size: 18, weight: .semibold)).lineLimit(1).truncationMode(.middle)
+                        Text("kept").font(.system(size: 18)).padding(.horizontal, 5).padding(.vertical, 1)
                             .background(Color.green.opacity(0.15)).clipShape(Capsule())
                         Spacer()
-                        Text(Self.bytes(group.size)).font(.caption).foregroundStyle(.secondary)
+                        Text(Self.bytes(group.size)).font(.system(size: 18)).foregroundStyle(.secondary)
                         Button("Show in Finder") { FinderReveal.show([group.keep.path]) }
-                            .controlSize(.small)
+                            .controlSize(.regular)
                     }
                     Text(group.keep.deletingLastPathComponent().path)
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.system(size: 18)).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                     ForEach(group.duplicates, id: \.self) { dup in
                         HStack(spacing: 6) {
-                            Text("→ \(dup.lastPathComponent)").font(.caption)
+                            Text("→ \(dup.lastPathComponent)").font(.system(size: 18))
                                 .lineLimit(1).truncationMode(.middle)
                             Spacer()
                             Button("Show in Finder") { FinderReveal.show([dup.path]) }
-                                .controlSize(.small)
+                                .controlSize(.regular)
                         }
                         Text("   in \(dup.deletingLastPathComponent().path)")
-                            .font(.caption2).foregroundStyle(.secondary)
+                            .font(.system(size: 18)).foregroundStyle(.secondary)
                             .lineLimit(1).truncationMode(.middle)
                     }
                 }

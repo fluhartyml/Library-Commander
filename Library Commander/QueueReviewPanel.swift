@@ -17,16 +17,16 @@ struct QueueReviewPanel: View {
             // Header
             HStack {
                 Image(systemName: "list.bullet.clipboard")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .foregroundColor(.orange)
                 Text("Shazam Queue")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .fontWeight(.semibold)
 
                 Spacer()
 
                 Text("\(queue.count()) files")
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -41,9 +41,9 @@ struct QueueReviewPanel: View {
                         .font(.system(size: 48))
                         .foregroundColor(.green)
                     Text("Queue is empty")
-                        .font(.headline)
+                        .font(.system(size: 18, weight: .semibold))
                     Text("All files have been processed!")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -104,26 +104,26 @@ struct QueueItemRow: View {
         HStack(spacing: 12) {
             // File icon
             Image(systemName: "music.note")
-                .font(.title2)
+                .font(.system(size: 22))
                 .foregroundColor(.orange)
                 .frame(width: 32)
 
             // File info
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.fileName)
-                    .font(.body)
+                    .font(.system(size: 18))
                     .lineLimit(1)
 
                 if let error = item.lastError {
                     Text(error)
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.red)
                         .lineLimit(1)
                 }
 
                 if item.attemptCount > 1 {
                     Text("Attempts: \(item.attemptCount)")
-                        .font(.caption2)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
             }

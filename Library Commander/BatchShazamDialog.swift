@@ -24,18 +24,18 @@ struct BatchShazamDialog: View {
                     .font(.title)
                     .foregroundColor(.blue)
                 Text("Shazaming Folder")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .fontWeight(.semibold)
 
                 if service.isProcessing {
                     ProgressView()
-                        .controlSize(.small)
+                        .controlSize(.regular)
                         .padding(.leading, 8)
                 }
             }
 
             Text(folderName)
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.secondary)
 
             Divider()
@@ -47,7 +47,7 @@ struct BatchShazamDialog: View {
                         .progressViewStyle(.linear)
 
                     Text("\(service.processedFiles) / \(service.totalFiles)")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
 
@@ -56,11 +56,11 @@ struct BatchShazamDialog: View {
                 // Currently processing
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Currently detecting:")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
 
                     Text(service.currentFile)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: 18, design: .monospaced))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -145,20 +145,20 @@ struct StatView: View {
         VStack(spacing: 4) {
             Image(systemName: icon)
                 .foregroundColor(color)
-                .font(.title2)
+                .font(.system(size: 22))
 
             if suffix.isEmpty {
                 Text("\(value)")
-                    .font(.title3)
+                    .font(.system(size: 20))
                     .fontWeight(.semibold)
             } else {
                 Text("\(value) \(suffix)")
-                    .font(.title3)
+                    .font(.system(size: 20))
                     .fontWeight(.semibold)
             }
 
             Text(label)
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

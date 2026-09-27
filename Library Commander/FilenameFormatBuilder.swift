@@ -64,11 +64,11 @@ struct FilenameFormatBuilder: View {
         VStack(spacing: 20) {
             // Title
             Text("Filename Format Builder")
-                .font(.title2)
+                .font(.system(size: 22))
                 .fontWeight(.semibold)
 
             Text("Build your custom filename format using metadata fields")
-                .font(.subheadline)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
 
             Divider()
@@ -76,7 +76,7 @@ struct FilenameFormatBuilder: View {
             // Blocks area
             VStack(alignment: .leading, spacing: 12) {
                 Text("Format Blocks:")
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
 
                 ScrollView(.horizontal, showsIndicators: true) {
@@ -144,7 +144,7 @@ struct FilenameFormatBuilder: View {
 
                 if selectedBlockID == nil {
                     Text("Click a block to select it")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
             }
@@ -154,11 +154,11 @@ struct FilenameFormatBuilder: View {
             // Preview
             VStack(alignment: .leading, spacing: 8) {
                 Text("Preview:")
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
 
                 Text(generatePreview())
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 18, design: .monospaced))
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.secondary.opacity(0.1))
@@ -291,7 +291,7 @@ struct BlockView: View {
             // X button to remove
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 18))
                     .foregroundColor(.red)
                     .background(Circle().fill(Color.white))
             }

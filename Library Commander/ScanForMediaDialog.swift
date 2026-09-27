@@ -128,7 +128,7 @@ struct ScanForMediaDialog: View {
         VStack(spacing: 20) {
             // Header
             Text("Scan for Media Files")
-                .font(.title2)
+                .font(.system(size: 22))
                 .fontWeight(.bold)
 
             switch phase {
@@ -208,24 +208,24 @@ struct ScanForMediaDialog: View {
                 .scaleEffect(1.5)
 
             Text("Scanning...")
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
 
             Text(scanner.currentPath)
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
                 .lineLimit(2)
                 .truncationMode(.middle)
 
             Text("Found: \(scanner.foundFiles.count) files")
-                .font(.title3)
+                .font(.system(size: 20))
                 .fontWeight(.semibold)
 
             if !scanner.foundLibraries.isEmpty {
                 Text("and \(scanner.foundLibraries.count) Photos \(scanner.foundLibraries.count == 1 ? "library" : "libraries")")
-                    .font(.subheadline)
+                    .font(.system(size: 18))
             }
             Text("\(scanner.checkedCount.formatted()) items looked at")
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
 
             Button("Stop Scanning") { scanner.cancel() }
@@ -241,7 +241,7 @@ struct ScanForMediaDialog: View {
     private var reviewView: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Found \(scanner.foundFiles.count) media files")
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
                 .padding(.leading, 4)
 
             // His rule, 2026-09-19: "the photos should be copied using the enclosing
@@ -250,10 +250,10 @@ struct ScanForMediaDialog: View {
             if !typeLibraries.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("and \(typeLibraries.count) Photos \(typeLibraries.count == 1 ? "library" : "libraries") — their photos come out under their real names and dates, read from each library's own database, flat into Photos/, and are copied, never moved:")
-                        .font(.caption)
+                        .font(.system(size: 18))
                     ForEach(typeLibraries, id: \.self) { lib in
                         Text("• \(lib.lastPathComponent)  —  \(lib.deletingLastPathComponent().path)")
-                            .font(.caption2)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -263,7 +263,7 @@ struct ScanForMediaDialog: View {
             }
             if selectedType == .photo {
                 Text("Photos inside a Photos library are always copied. Loose photos follow Move or Copy. All go flat into Photos/ — no subfolders.")
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .padding(.leading, 4)
             }
@@ -274,7 +274,7 @@ struct ScanForMediaDialog: View {
                     Image(systemName: "arrow.uturn.right")
                         .foregroundColor(.secondary)
                     Text("Skipped the designated media folder: \(scanner.skippedFolders.map { $0.lastPathComponent }.joined(separator: ", "))")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
                 .padding(.leading, 4)
@@ -283,7 +283,7 @@ struct ScanForMediaDialog: View {
             // Size and space info
             HStack {
                 Text("Total size: \(scanner.formatBytes(scanner.totalSize))")
-                    .font(.subheadline)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
 
                 if selectedAction != .addToPlaylist, let available = scanner.availableSpace(at: writeTargetPath) {
@@ -293,7 +293,7 @@ struct ScanForMediaDialog: View {
                         Image(systemName: hasSpace ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundColor(hasSpace ? .green : .orange)
                         Text("Available: \(scanner.formatBytes(available))")
-                            .font(.subheadline)
+                            .font(.system(size: 18))
                             .foregroundColor(hasSpace ? .secondary : .orange)
                     }
                 }
@@ -305,7 +305,7 @@ struct ScanForMediaDialog: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
                     Text("Warning: Insufficient disk space. Some files may not copy.")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.orange)
                 }
                 .padding(8)
@@ -323,10 +323,10 @@ struct ScanForMediaDialog: View {
                                 Image(systemName: iconForExtension(url.pathExtension))
                                     .foregroundColor(colorForMediaType(url))
                                 Text(url.lastPathComponent)
-                                    .font(.caption)
+                                    .font(.system(size: 18))
                                 Spacer()
                                 Text(url.deletingLastPathComponent().lastPathComponent)
-                                    .font(.caption2)
+                                    .font(.system(size: 18))
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -347,7 +347,7 @@ struct ScanForMediaDialog: View {
                                 Image(systemName: "music.note")
                                     .foregroundColor(Color(red: 0.85, green: 0.65, blue: 0.13))
                                 Text("\(audioCount) Audio")
-                                    .font(.subheadline)
+                                    .font(.system(size: 18))
                             }
                         }
                         if videoCount > 0 {
@@ -355,7 +355,7 @@ struct ScanForMediaDialog: View {
                                 Image(systemName: "film")
                                     .foregroundColor(Color(red: 0.61, green: 0.35, blue: 0.71))
                                 Text("\(videoCount) Video")
-                                    .font(.subheadline)
+                                    .font(.system(size: 18))
                             }
                         }
                         if photoCount > 0 {
@@ -363,7 +363,7 @@ struct ScanForMediaDialog: View {
                                 Image(systemName: "photo")
                                     .foregroundColor(.teal)
                                 Text("\(photoCount) Photos")
-                                    .font(.subheadline)
+                                    .font(.system(size: 18))
                             }
                         }
                     }
@@ -379,7 +379,7 @@ struct ScanForMediaDialog: View {
             // Build 83: which media type this scan sorts.
             VStack(alignment: .leading, spacing: 8) {
                 Text("Media type:")
-                    .font(.subheadline)
+                    .font(.system(size: 18))
                     .fontWeight(.semibold)
                 Picker("Media type", selection: $selectedType) {
                     Text("Audio (\(count(.audio).formatted()) files)").tag(MediaScanner.MediaType.audio)
@@ -394,7 +394,7 @@ struct ScanForMediaDialog: View {
             // Action selection
             VStack(alignment: .leading, spacing: 8) {
                 Text("Action:")
-                    .font(.subheadline)
+                    .font(.system(size: 18))
                     .fontWeight(.semibold)
 
                 Picker("Action", selection: $selectedAction) {
@@ -416,13 +416,13 @@ struct ScanForMediaDialog: View {
             if selectedAction != .addToPlaylist {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Organization:")
-                        .font(.subheadline)
+                        .font(.system(size: 18))
                         .fontWeight(.semibold)
 
                     if selectedType == .photo {
                         // Build 83: photos have one shelf — flat, in Photos/.
                         Text("Photos go flat into Photos/ in the target — no subfolders.")
-                            .font(.callout)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
                     } else {
                         Picker("Organization", selection: $selectedOrganization) {
@@ -439,7 +439,7 @@ struct ScanForMediaDialog: View {
                 // Build 99 — his ask: "user can choose three parallel or one series".
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Run the folders:")
-                        .font(.subheadline).fontWeight(.semibold)
+                        .font(.system(size: 18)).fontWeight(.semibold)
                     Picker("Run the folders", selection: $runBarsOneAtATime) {
                         Text("All at once — one bar each, sharing the drive").tag(false)
                         Text("One at a time — each folder waits its turn").tag(true)
@@ -447,7 +447,7 @@ struct ScanForMediaDialog: View {
                     .pickerStyle(.radioGroup)
                     .labelsHidden()
                     Text("They share one connection either way, so the total time is much the same. One at a time moves each bar faster and leaves less half-done if you stop.")
-                        .font(.caption).foregroundColor(.secondary)
+                        .font(.system(size: 18)).foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -458,12 +458,12 @@ struct ScanForMediaDialog: View {
                 if !selectedAction.usesMediaLibrary {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Destination:")
-                        .font(.subheadline)
+                        .font(.system(size: 18))
                         .fontWeight(.semibold)
 
                     HStack {
                         Text(destinationPath.isEmpty ? "No destination selected" : destinationPath)
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(destinationPath.isEmpty ? .orange : .secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -502,7 +502,7 @@ struct ScanForMediaDialog: View {
                         Text(mediaLibraryPath.isEmpty
                              ? "No designated media folder. Choose one in Settings, or right-click a folder."
                              : mediaLibraryPath)
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(mediaLibraryIsReachable ? .secondary : .orange)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -539,10 +539,10 @@ struct ScanForMediaDialog: View {
                 .progressViewStyle(.linear)
 
             Text("\(selectedAction.rawValue)...")
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
 
             Text("\(processedCount) of \(totalCount) files")
-                .font(.title3)
+                .font(.system(size: 20))
                 .fontWeight(.semibold)
         }
     }
@@ -555,11 +555,11 @@ struct ScanForMediaDialog: View {
                 .foregroundColor(.green)
 
             Text("Complete!")
-                .font(.title2)
+                .font(.system(size: 22))
                 .fontWeight(.bold)
 
             Text("Processed \(processedCount) files")
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
         }
     }
 

@@ -30,14 +30,14 @@ struct GenreReviewDialog: View {
                     .font(.title)
                     .foregroundColor(.purple)
                 Text("Select Genre")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .fontWeight(.semibold)
 
                 Spacer()
 
                 // Progress indicator
                 Text("\(currentIndex + 1) of \(queue.items.count)")
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -53,9 +53,9 @@ struct GenreReviewDialog: View {
                     // Song details
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title ?? "Unknown Title")
-                            .font(.headline)
+                            .font(.system(size: 18, weight: .semibold))
                         Text(item.artist ?? "Unknown Artist")
-                            .font(.subheadline)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
                     }
 
@@ -64,10 +64,10 @@ struct GenreReviewDialog: View {
                     // File name
                     VStack(alignment: .leading, spacing: 4) {
                         Text("File:")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
                         Text(item.fileName)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(size: 18, design: .monospaced))
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
@@ -82,7 +82,7 @@ struct GenreReviewDialog: View {
                     if item.allGenres.isEmpty {
                         // No genres available - allow manual entry
                         Text("No genres detected")
-                            .font(.subheadline)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         TextField("Enter genre manually", text: Binding(
@@ -93,7 +93,7 @@ struct GenreReviewDialog: View {
                     } else {
                         // Multiple genres - let user pick
                         Text("Select a genre (\(item.allGenres.count) available):")
-                            .font(.subheadline)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         ScrollView {
@@ -150,7 +150,7 @@ struct GenreReviewDialog: View {
                     }) {
                         if isProcessing {
                             ProgressView()
-                                .controlSize(.small)
+                                .controlSize(.regular)
                                 .frame(width: 16, height: 16)
                         } else {
                             Label(currentIndex < queue.items.count - 1 ? "Apply & Next" : "Apply & Done",
@@ -170,7 +170,7 @@ struct GenreReviewDialog: View {
                         .foregroundColor(.green)
 
                     Text("All genres reviewed!")
-                        .font(.headline)
+                        .font(.system(size: 18, weight: .semibold))
 
                     Button("Done") {
                         isPresented = false

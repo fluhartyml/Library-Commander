@@ -21,7 +21,7 @@ struct ITunesResultsDialog: View {
 
             // Title
             Text("iTunes Lookup Complete")
-                .font(.title2)
+                .font(.system(size: 22))
                 .fontWeight(.semibold)
 
             Divider()
@@ -55,7 +55,7 @@ struct ITunesResultsDialog: View {
             if matchedCount > 0 {
                 VStack(spacing: 4) {
                     Text("Metadata updated with:")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 12) {
@@ -64,7 +64,7 @@ struct ITunesResultsDialog: View {
                         Label("Year", systemImage: "calendar")
                         Label("Artwork", systemImage: "photo")
                     }
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                 }
             }

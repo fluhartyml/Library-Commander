@@ -43,7 +43,7 @@ struct MetadataEditorPanel: View {
                     }) {
                         if isDetecting {
                             ProgressView()
-                                .controlSize(.small)
+                                .controlSize(.regular)
                         } else {
                             Label("Shazam", systemImage: "shazam.logo.fill")
                         }
@@ -65,7 +65,7 @@ struct MetadataEditorPanel: View {
 
                     if let error = detectionError {
                         Text(error)
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.red)
                     }
                 }
@@ -78,7 +78,7 @@ struct MetadataEditorPanel: View {
                 // Filename editor at top
                 VStack(spacing: 8) {
                     Text("File Name")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -120,7 +120,7 @@ struct MetadataEditorPanel: View {
                     }) {
                         if isSaving {
                             ProgressView()
-                                .controlSize(.small)
+                                .controlSize(.regular)
                                 .padding(.horizontal, 20)
                         } else {
                             Text("Save Metadata")
@@ -141,7 +141,7 @@ struct MetadataEditorPanel: View {
                         .foregroundColor(.secondary)
                         .padding()
                     Text("in the opposite pane")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -501,7 +501,7 @@ struct MetadataFieldSimple: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
             TextField("", text: $text)
                 .textFieldStyle(.roundedBorder)

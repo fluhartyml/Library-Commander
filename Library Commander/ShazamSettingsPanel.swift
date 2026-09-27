@@ -34,12 +34,12 @@ struct ShazamSettingsPanel: View {
                     .font(.title)
                     .foregroundColor(.blue)
                 Text("Shazam Settings")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .fontWeight(.semibold)
             }
 
             Text("Configure how Shazam detects and renames your music library")
-                .font(.subheadline)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
 
@@ -50,11 +50,11 @@ struct ShazamSettingsPanel: View {
                 Section("Filename Format") {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Files will be renamed using this format after detection:")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         Text(generatePreview())
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(size: 18, design: .monospaced))
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color.secondary.opacity(0.1))
@@ -72,13 +72,13 @@ struct ShazamSettingsPanel: View {
                 Section("Media Library") {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("The designated media folder. Scan for Media can send music, video and photos here.")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         Text(musicLibraryPath.isEmpty
                              ? "No target designated"
                              : musicLibraryPath)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(size: 18, design: .monospaced))
                             .foregroundColor(musicLibraryPath.isEmpty ? .orange : .primary)
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -91,7 +91,7 @@ struct ShazamSettingsPanel: View {
                         if !musicLibraryPath.isEmpty && !folderExists(musicLibraryPath) {
                             Label("That folder is not reachable right now. Its drive may be unmounted.",
                                   systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.orange)
                         }
 
@@ -113,7 +113,7 @@ struct ShazamSettingsPanel: View {
                         }
 
                         Text("You can also right-click any folder in either pane and choose Designate as Media Library.")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -123,7 +123,7 @@ struct ShazamSettingsPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Auto-rename matched files")
                             Text("Automatically rename and save metadata after successful detection")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -132,7 +132,7 @@ struct ShazamSettingsPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Queue unmatched files")
                             Text("Add files that can't be identified to a review queue")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -143,7 +143,7 @@ struct ShazamSettingsPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Scanned Files Database")
                             Text("\(ShazamScannedDatabase.shared.count()) files tracked")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -161,7 +161,7 @@ struct ShazamSettingsPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Reformat Files")
                             Text("Rename all tracked files using current format (no re-scan)")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -190,7 +190,7 @@ struct ShazamSettingsPanel: View {
                                     .foregroundColor(.red)
                             }
                         }
-                        .font(.caption)
+                        .font(.system(size: 18))
                     }
 
                     Divider()
@@ -200,7 +200,7 @@ struct ShazamSettingsPanel: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("iTunes API Lookup")
                             Text("Fetch fresh metadata using stored Apple Music IDs (no fingerprinting)")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -230,11 +230,11 @@ struct ShazamSettingsPanel: View {
                                     .foregroundColor(.red)
                             }
                         }
-                        .font(.caption)
+                        .font(.system(size: 18))
                     }
 
                     Text("iTunes API bypasses Shazam rate limits. Only works for files with stored Apple Music IDs.")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
             }
@@ -246,7 +246,7 @@ struct ShazamSettingsPanel: View {
             HStack(spacing: 12) {
                 if !settings.isConfigured {
                     Text("Complete setup to enable Shazam features")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
 

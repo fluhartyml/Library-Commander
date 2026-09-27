@@ -15,7 +15,7 @@ set -e
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 chmod +x "$ROOT/Scripts/stamp-build.sh"
 
-for h in post-commit post-checkout post-merge; do
+for h in post-commit post-checkout post-merge pre-commit; do
     [ -f "$ROOT/Scripts/$h" ] || { echo "MISSING: Scripts/$h" >&2; exit 1; }
     cp "$ROOT/Scripts/$h" "$ROOT/.git/hooks/$h"
     chmod +x "$ROOT/.git/hooks/$h"

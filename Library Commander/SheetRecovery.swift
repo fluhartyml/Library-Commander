@@ -23,7 +23,7 @@ struct SheetRecovery: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("There is nothing to show here.", systemImage: "questionmark.square.dashed")
-                .font(.title3)
+                .font(.system(size: 20))
             Text("This window opened without anything to put in it. Nothing has been changed, and closing it is safe.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

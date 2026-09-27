@@ -27,9 +27,9 @@ struct AudioPlayer: View {
             // Header
             HStack {
                 Image(systemName: "music.note")
-                    .font(.title2)
+                    .font(.system(size: 22))
                 Text(fileName)
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer()
@@ -52,7 +52,7 @@ struct AudioPlayer: View {
             // Time display
             HStack {
                 Text(formatTime(currentTime))
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .leading)
 
@@ -64,7 +64,7 @@ struct AudioPlayer: View {
                 .disabled(duration == 0)
 
                 Text(formatTime(duration))
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .trailing)
             }

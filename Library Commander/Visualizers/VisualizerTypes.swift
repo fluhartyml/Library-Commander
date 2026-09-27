@@ -101,7 +101,7 @@ struct AlbumArtVisualizer: View {
                             .scaleEffect(1.0 + CGFloat(amplitude) * 0.2)
                             .animation(.easeOut(duration: 0.1), value: amplitude)
                         Text("No Album Art")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.gray)
                     }
                     .id("no-artwork")
@@ -150,7 +150,7 @@ struct AlbumArtStaticVisualizer: View {
                             .font(.system(size: 80))
                             .foregroundColor(.gray)
                         Text("No Album Art")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.gray)
                     }
                 }

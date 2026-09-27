@@ -33,10 +33,10 @@ struct StatsPaneView: View {
                                 .font(.system(size: 28))
                                 .foregroundStyle(healthColor)
                             Text(healthLabel)
-                                .font(.system(size: 16))
+                                .font(.system(size: 18))
                                 .foregroundStyle(.secondary)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 14))
+                                .font(.system(size: 18))
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal, 8)
@@ -62,7 +62,7 @@ struct StatsPaneView: View {
                         HStack(spacing: 6) {
                             if library.isWorking {
                                 ProgressView()
-                                    .controlSize(.small)
+                                    .controlSize(.regular)
                             }
                             Text("Refresh")
                         }
@@ -72,7 +72,7 @@ struct StatsPaneView: View {
 
                 if health == .sad || health == .bored {
                     Text(suggestedAction)
-                        .font(.system(size: 15))
+                        .font(.system(size: 18))
                         .foregroundStyle(.secondary)
                 }
 
@@ -108,10 +108,10 @@ struct StatsPaneView: View {
                 if !library.statusMessage.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Last message")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(.secondary)
                         Text(library.statusMessage)
-                            .font(.system(size: 14))
+                            .font(.system(size: 18))
                             .foregroundStyle(.red)
                             .textSelection(.enabled)
                     }

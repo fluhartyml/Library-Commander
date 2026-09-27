@@ -128,13 +128,13 @@ private struct SideBySide: View {
     private func card(_ label: String, _ f: FileFacts, other: FileFacts,
                       tally: FolderTally?, otherTally: FolderTally?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label.uppercased()).font(.caption).foregroundStyle(.secondary)
+            Text(label.uppercased()).font(.system(size: 18)).foregroundStyle(.secondary)
             HStack(spacing: 8) {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: f.url.path))
                     .resizable().frame(width: 32, height: 32)
-                Text(f.name).font(.headline).lineLimit(2)
+                Text(f.name).font(.system(size: 18, weight: .semibold)).lineLimit(2)
             }
-            Text("in “\(Fmt.folderName(f.url))”").font(.callout).foregroundStyle(.secondary)
+            Text("in “\(Fmt.folderName(f.url))”").font(.system(size: 18)).foregroundStyle(.secondary)
             // His ask, 2026-09-19: "you know what would be better than show in finder (keep
             // show in finder) thumbnail preview?"
             if !f.isDirectory || f.isPackage {
@@ -143,24 +143,24 @@ private struct SideBySide: View {
             // His ask, 2026-09-19: "can it have show in finder so i can see each and play if
             // needed?" — Finder opens with this one selected; Space plays or previews it.
             Button("Show in Finder") { FinderReveal.show([f.url.path]) }
-                .controlSize(.small)
+                .controlSize(.regular)
                 .help("Opens Finder with this one selected. Press Space there to play or preview it.")
             if !f.isDirectory || f.isPackage {
                 HStack(spacing: 6) {
                     Text(Fmt.size(f.size))
                     if f.size != other.size && !f.isDirectory {
-                        Text(f.size > other.size ? "larger" : "smaller").font(.caption)
+                        Text(f.size > other.size ? "larger" : "smaller").font(.system(size: 18))
                             .padding(.horizontal, 5).background(.quaternary, in: Capsule())
                     }
                 }
-                if !f.isDirectory && f.size >= 1000 { Text(Fmt.exact(f.size)).font(.caption).foregroundStyle(.secondary) }
+                if !f.isDirectory && f.size >= 1000 { Text(Fmt.exact(f.size)).font(.system(size: 18)).foregroundStyle(.secondary) }
             }
             if let tally {
                 // Plan 6.2: the complete copy shows at a glance — a date alone cannot say it.
                 HStack(spacing: 6) {
                     Text("\(Fmt.plural(tally.items, "item")) · \(Fmt.size(tally.bytes))").bold()
                     if let o = otherTally, o.items != tally.items {
-                        Text(tally.items > o.items ? "more" : "fewer").font(.caption)
+                        Text(tally.items > o.items ? "more" : "fewer").font(.system(size: 18))
                             .padding(.horizontal, 5).background(.quaternary, in: Capsule())
                     }
                 }
@@ -169,11 +169,11 @@ private struct SideBySide: View {
                 HStack(spacing: 6) {
                     Text("Modified \(Fmt.date(f.modified))")
                     if let a = f.modified, let b = other.modified, abs(a.timeIntervalSince(b)) >= 1 {
-                        Text(a > b ? "newer" : "older").font(.caption)
+                        Text(a > b ? "newer" : "older").font(.system(size: 18))
                             .padding(.horizontal, 5).background(.quaternary, in: Capsule())
                     }
                 }
-                .font(.callout)
+                .font(.system(size: 18))
             }
         }
         .padding(12)
@@ -207,7 +207,7 @@ private struct CardThumbnail: View {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(.quaternary)
                     .frame(height: 90)
-                    .overlay { ProgressView().controlSize(.small) }
+                    .overlay { ProgressView().controlSize(.regular) }
             }
         }
         .task(id: url) {
@@ -274,7 +274,7 @@ private struct FolderQuestionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("A folder named “\(question.source.name)” is already in “\(Fmt.folderName(question.target.url))”")
-                .font(.title2).bold()
+                .font(.system(size: 22)).bold()
             Text("You are \(question.kind == .move ? "moving" : "copying") a folder into a place that already has a folder with the same name.")
                 .foregroundStyle(.secondary)
             SideBySide(source: question.source, target: question.target,
@@ -307,9 +307,9 @@ private struct ReplaceConfirmView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(title).font(.title2).bold()
+            Text(title).font(.system(size: 22)).bold()
             Text("This removes \(Fmt.plural(question.fileCount, "file")) (\(Fmt.size(question.byteCount))) that \(question.fileCount == 1 ? "is" : "are") already there.")
-                .font(.title3)
+                .font(.system(size: 20))
             if question.goesToTrash {
                 Label("They go to the Trash, so you can get them back.", systemImage: "trash")
             } else {
@@ -320,7 +320,7 @@ private struct ReplaceConfirmView: View {
             if question.targets.count > 1 {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 4) {
-                        ForEach(question.targets, id: \.self) { Text($0.path).font(.callout.monospaced()) }
+                        ForEach(question.targets, id: \.self) { Text($0.path).font(.system(size: 18, design: .monospaced)) }
                     }
                 }
                 .frame(maxHeight: 160)
@@ -409,7 +409,7 @@ private struct FileQuestionView: View {
                  // card's. Naming the pair after one card's UUID made the popup look wrong.
                  ? "Two files are coming into “\(Fmt.folderName(question.target.url))” as “\(question.landingName ?? question.source.name)”"
                  : "“\(question.source.name)” is already in “\(Fmt.folderName(question.target.url))”")
-                .font(.title2).bold()
+                .font(.system(size: 22)).bold()
             Text(flattenIntro)
                 .foregroundStyle(.secondary)
         } else {
@@ -516,26 +516,26 @@ private struct FileQuestionView: View {
     @ViewBuilder private var standardHeader: some View {
         switch question.sameness {
         case .sameSizeAndDate:
-            Text("These two files look identical").font(.title2).bold()
+            Text("These two files look identical").font(.system(size: 22)).bold()
             Text("Same name, same size and the same date. Their contents were not compared.")
                 .foregroundStyle(.secondary)
         case .sameContents:
-            Text("These two files are identical").font(.title2).bold()
+            Text("These two files are identical").font(.system(size: 22)).bold()
             Text(question.source.modified == question.target.modified
                  ? "Same name, same size and the same contents, compared byte for byte."
                  : "Same name, same size and the same contents, compared byte for byte. Only their dates differ.")
                 .foregroundStyle(.secondary)
         case .verifiedEarlier:
-            Text("These two files are identical").font(.title2).bold()
+            Text("These two files are identical").font(.system(size: 22)).bold()
             Text("Commander copied or compared this exact pair on an earlier run, and neither file's size or date has changed since, so it was not read again.")
                 .foregroundStyle(.secondary)
         case .sameAudio:
-            Text("Same music, different tags").font(.title2).bold()
+            Text("Same music, different tags").font(.system(size: 22)).bold()
             Text("These two hold exactly the same audio — only their tags differ, which is why their sizes do not match. Merge keeps the larger one and writes both sets of tags into it.")
                 .foregroundStyle(.secondary)
         case .differs:
             Text("“\(question.source.name)” is already in “\(Fmt.folderName(question.target.url))”")
-                .font(.title2).bold()
+                .font(.system(size: 22)).bold()
             if question.unitOnly {
                 Text(question.source.isPackage || question.target.isPackage
                      ? "Libraries and packages are handled as one item and are never merged inside — mixing two libraries' files leaves one the app cannot open."
@@ -625,10 +625,10 @@ private struct ErrorQuestionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("Something went wrong", systemImage: "exclamationmark.triangle.fill")
-                .font(.title2).bold()
+                .font(.system(size: 22)).bold()
                 .foregroundStyle(.orange)
-            Text(question.message).font(.title3).fixedSize(horizontal: false, vertical: true)
-            Text(question.path).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
+            Text(question.message).font(.system(size: 20)).fixedSize(horizontal: false, vertical: true)
+            Text(question.path).font(.system(size: 18, design: .monospaced)).foregroundStyle(.secondary).textSelection(.enabled)
             Divider()
             ChoiceRow(title: "Retry", explanation: "Try this item again.", isDefault: true) { controller.answerError(.retry) }
             ChoiceRow(title: "Skip", explanation: "Leave this item where it is and carry on with the rest.") { controller.answerError(.skip) }
@@ -650,12 +650,12 @@ private struct EmptyFoldersView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("The source now has \(Fmt.plural(question.folders.count, "empty folder"))").font(.title2).bold()
+            Text("The source now has \(Fmt.plural(question.folders.count, "empty folder"))").font(.system(size: 22)).bold()
             Text("Every file in them was moved into one folder. What should happen to the folders they came from?")
                 .foregroundStyle(.secondary)
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(question.folders.reversed(), id: \.self) { Text($0.path).font(.callout.monospaced()) }
+                    ForEach(question.folders.reversed(), id: \.self) { Text($0.path).font(.system(size: 18, design: .monospaced)) }
                 }
             }
             .frame(maxHeight: 160)
@@ -691,7 +691,7 @@ private struct ExtractOptionsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Extract photos from “\(request.library.lastPathComponent)”").font(.title2).bold()
+            Text("Extract photos from “\(request.library.lastPathComponent)”").font(.system(size: 22)).bold()
             Text("Every photo in the library goes into “\(request.target.lastPathComponent)” under the name and date it has in Photos — not the code names the library stores them under. Live Photos bring their short video along beside them.")
                 .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
 
@@ -756,8 +756,8 @@ private struct SummaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(title).font(.title2).bold()
-            Text(headline).font(.title3)
+            Text(title).font(.system(size: 22)).bold()
+            Text(headline).font(.system(size: 20))
                 .fixedSize(horizontal: false, vertical: true)  // it was cut off at "was lef…" (2026-09-18)
             if let stillGoing {
                 Text(stillGoing).foregroundStyle(.secondary)
@@ -937,7 +937,7 @@ private struct SummaryView: View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 if !name.isEmpty {
-                    Label("\(name) (\(items.count))", systemImage: icon).font(.headline).foregroundStyle(color)
+                    Label("\(name) (\(items.count))", systemImage: icon).font(.system(size: 18, weight: .semibold)).foregroundStyle(color)
                 }
                 // Build 105: a cap as well as laziness. Lazy stops the sheet hanging;
                 // the cap stops a scroll bar that represents 80,000 rows nobody will read.
@@ -1000,9 +1000,9 @@ private struct UndoLastView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Undo the last move?").font(.title2).bold()
+            Text("Undo the last move?").font(.system(size: 22)).bold()
             Text("On \(log.date.formatted(date: .abbreviated, time: .shortened)), \(Fmt.plural(movedCount, "item")) moved into “\(URL(fileURLWithPath: log.target).lastPathComponent)”.")
-                .font(.title3)
+                .font(.system(size: 20))
             Text("Everything goes back where it came from, and anything that was replaced comes back out of the Trash. Items replaced on a network drive were deleted and cannot come back.")
                 .foregroundStyle(.secondary)
             HStack {
@@ -1026,7 +1026,7 @@ struct FileOperationProgressBar: View {
         let p = job.progress
         HStack(spacing: 14) {
             Image(systemName: job.kind == .delete ? "trash" : job.kind == .move ? "arrow.right.doc.on.clipboard" : "doc.on.doc")
-                .font(.title2)
+                .font(.system(size: 22))
             VStack(alignment: .leading, spacing: 4) {
                 Text(line(p)).lineLimit(1).truncationMode(.middle)
                 if p.phase == .transferring {
@@ -1035,15 +1035,15 @@ struct FileOperationProgressBar: View {
                     ProgressView().progressViewStyle(.linear)
                 }
                 if p.phase == .transferring, p.folderCount > 0 {
-                    Text(folderLine(p)).font(.caption).lineLimit(1).truncationMode(.middle)
+                    Text(folderLine(p)).font(.system(size: 18)).lineLimit(1).truncationMode(.middle)
                 }
                 if p.phase == .transferring, p.bytesTotal > 0 || p.secondsLeft != nil {
-                    Text(detail(p)).font(.caption).foregroundStyle(.secondary)
+                    Text(detail(p)).font(.system(size: 18)).foregroundStyle(.secondary)
                 }
                 // His spec: "the pause warning should be on each status bar".
                 if let warning = governorLine() {
                     Label(warning, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundStyle(.orange)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -1160,7 +1160,7 @@ struct FileOperationOverallBar: View {
             Image(systemName: governor.isUnstable ? "exclamationmark.triangle.fill" : "square.stack.3d.up")
                 .foregroundStyle(governor.isUnstable ? Color.orange : Color.secondary)
             Text(summary(governor))
-                .font(.caption)
+                .font(.system(size: 18))
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer()

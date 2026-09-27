@@ -180,7 +180,7 @@ struct FileBrowserPanel: View {
                     HStack(spacing: 6) {
                         Image(systemName: (volume?.path ?? "/") == "/" ? "internaldrive.fill" : "externaldrive.fill")
                         Text(volume?.name ?? "Drive")
-                            .font(.title2.bold())
+                            .font(.system(size: 22, weight: .bold))
                             .lineLimit(1)
                     }
                 }
@@ -223,7 +223,7 @@ struct FileBrowserPanel: View {
 
                         if playlistCount > 0 {
                             Text("\(playlistCount)")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(2)
                                 .background(Circle().fill(Color.red))
@@ -336,7 +336,7 @@ struct FileBrowserPanel: View {
                 TickerText(text: fileSystem.virtualListing.map { "\($0.title) — \($0.paths.count) items (not a folder)" }
                                  ?? fileSystem.currentPath)
                     // Was .caption, then .body — both "too small" (2026-09-27).
-                    .font(.system(.title3, design: .monospaced))
+                    .font(.system(size: 20, design: .monospaced))
                     .foregroundColor(fileSystem.virtualListing == nil ? .secondary : .orange)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -366,25 +366,25 @@ struct FileBrowserPanel: View {
 
                     // North - Up arrow (previous)
                     Text("↑")
-                        .font(.system(size: 10))
+                        .font(.system(size: 18))
                         .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
                         .offset(x: 0, y: -15)
 
                     // South - Down arrow (next)
                     Text("↓")
-                        .font(.system(size: 10))
+                        .font(.system(size: 18))
                         .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
                         .offset(x: 0, y: 15)
 
                     // East - Right arrow (move)
                     Text("→")
-                        .font(.system(size: 10))
+                        .font(.system(size: 18))
                         .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
                         .offset(x: 15, y: 0)
 
                     // West - Left arrow (copy)
                     Text("←")
-                        .font(.system(size: 10))
+                        .font(.system(size: 18))
                         .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
                         .offset(x: -15, y: 0)
                 }
@@ -403,7 +403,7 @@ struct FileBrowserPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.circle.fill")
                             Text("..")
-                                .font(.system(.body, design: .monospaced))
+                                .font(.system(size: 18, design: .monospaced))
                         }
                     }
                     .buttonStyle(.bordered)
@@ -473,7 +473,7 @@ struct FileBrowserPanel: View {
                                             onItemDoubleClick(item)
                                         }) {
                                             Image(systemName: "play.circle.fill")
-                                                .font(.system(size: 14))
+                                                .font(.system(size: 18))
                                                 .foregroundColor(.accentColor)
                                         }
                                         .buttonStyle(.borderless)
@@ -487,7 +487,7 @@ struct FileBrowserPanel: View {
                                             showMediaPlayer = false
                                         }) {
                                             Image(systemName: "arrow.right.circle.fill")
-                                                .font(.system(size: 14))
+                                                .font(.system(size: 18))
                                                 .foregroundColor(.blue)
                                         }
                                         .buttonStyle(.borderless)
@@ -514,7 +514,7 @@ struct FileBrowserPanel: View {
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(item.name).lineLimit(1)
                                             Text(why)
-                                                .font(.caption)
+                                                .font(.system(size: 18))
                                                 .foregroundColor(.orange)
                                                 .lineLimit(2)
                                                 .fixedSize(horizontal: false, vertical: true)
@@ -535,7 +535,7 @@ struct FileBrowserPanel: View {
                                        !musicSettings.musicLibraryPath.isEmpty,
                                        URL(fileURLWithPath: item.path).standardizedFileURL.path == musicSettings.musicLibraryPath {
                                         Image(systemName: "checkmark.seal.fill")
-                                            .font(.system(size: 12))
+                                            .font(.system(size: 18))
                                             .foregroundColor(.green)
                                             .help("Media Library")
                                     }
@@ -917,7 +917,7 @@ struct FileBrowserPanel: View {
                     Text(selectedFile.displayDate)
                         .foregroundColor(.secondary)
                 }
-                .font(.caption)
+                .font(.system(size: 18))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .background(Color.secondary.opacity(0.08))
@@ -944,12 +944,12 @@ struct FileBrowserPanel: View {
                 HStack(spacing: 4) {
                     // File count
                     Text("\(displayedFiles.count) items")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                         .padding(.trailing, 8)
 
                     Text("›")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
 
                     ForEach(Array(fileSystem.breadcrumbs.enumerated()), id: \.element.id) { index, breadcrumb in
@@ -959,14 +959,14 @@ struct FileBrowserPanel: View {
                             showMediaPlayer = false
                         }) {
                             Text(breadcrumb.name)
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(.plain)
 
                         if index < fileSystem.breadcrumbs.count - 1 {
                             Text("›")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -1151,7 +1151,7 @@ struct FileBrowserPanel: View {
         .overlay(alignment: .top) {
             if showNuclearToast {
                 Text(nuclearToastMessage)
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.white)
                     .padding()
                     .background(

@@ -26,7 +26,7 @@ struct LockerPaneView: View {
                 VStack(spacing: 8) {
                     ProgressView()
                     Text(locker.backupProgress)
-                        .font(.system(size: 16))
+                        .font(.system(size: 18))
                         .foregroundStyle(.secondary)
                 }
                 .padding()
@@ -48,7 +48,7 @@ struct LockerPaneView: View {
                                         Text(file.name)
                                             .font(.system(size: 18))
                                         Text("\(file.createdAt, format: .dateTime) — \(file.formattedSize)")
-                                            .font(.system(size: 14))
+                                            .font(.system(size: 18))
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()

@@ -77,7 +77,7 @@ struct LibraryPaneView: View {
             .padding()
 
             Text("Run Apple Music Scan first — text-search against the iTunes catalog fills metadata and attaches Apple Music IDs. Shazam the leftovers only if anything remains unidentified.")
-                .font(.system(size: 13))
+                .font(.system(size: 18))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
@@ -88,7 +88,7 @@ struct LibraryPaneView: View {
 
             if !library.statusMessage.isEmpty {
                 Text(library.statusMessage)
-                    .font(.system(size: 14))
+                    .font(.system(size: 18))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
                     .padding(.bottom, 8)
@@ -122,7 +122,7 @@ struct LibraryPaneView: View {
                             Text(row.title.isEmpty ? "(no title)" : row.title)
                                 .font(.system(size: 18))
                             Text("\(row.artist.isEmpty ? "(no artist)" : row.artist) — \(row.album.isEmpty ? "(no album)" : row.album)\(row.genre.isEmpty ? "" : " · \(row.genre)")")
-                                .font(.system(size: 14))
+                                .font(.system(size: 18))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -150,9 +150,9 @@ struct LibraryPaneView: View {
         if library.isWorking, case .idle = library.scanState, !library.uploadedTracks.isEmpty {
             HStack(spacing: 10) {
                 ProgressView()
-                    .controlSize(.small)
+                    .controlSize(.regular)
                 Text("One moment please…")
-                    .font(.system(size: 14))
+                    .font(.system(size: 18))
                     .foregroundStyle(.secondary)
                 Spacer()
             }
@@ -173,7 +173,7 @@ struct LibraryPaneView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("\(kind) — \(processed.formatted()) / \(total.formatted())")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                     Spacer()
                     Button(library.scanCancelRequested ? "Cancelling…" : "Cancel") {
                         library.cancelScan()
@@ -183,7 +183,7 @@ struct LibraryPaneView: View {
                 }
                 ProgressView(value: Double(processed), total: Double(max(total, 1)))
                 Text(current)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 18, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 HStack(spacing: 16) {
@@ -203,10 +203,10 @@ struct LibraryPaneView: View {
                     Image(systemName: cancelled ? "stop.circle.fill" : "checkmark.circle.fill")
                         .foregroundStyle(cancelled ? .orange : .green)
                     Text(cancelled ? "\(kind) cancelled" : "\(kind) complete")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                     Spacer()
                     Text("\(processed.formatted()) / \(total.formatted())")
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.system(size: 18, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
                 HStack(spacing: 16) {
@@ -217,7 +217,7 @@ struct LibraryPaneView: View {
                 }
                 if needsDownload > 0 {
                     Text("Needs download: \(needsDownload) tracks are iCloud-only on this Mac. In Music, select them and tap Download, then rerun Apple Music Scan to process.")
-                        .font(.system(size: 12))
+                        .font(.system(size: 18))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
@@ -234,7 +234,7 @@ struct LibraryPaneView: View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 8, height: 8)
             Text("\(label): \(value.formatted())")
-                .font(.system(size: 13, design: .monospaced))
+                .font(.system(size: 18, design: .monospaced))
         }
     }
 

@@ -31,9 +31,9 @@ struct MetadataEditor: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Edit Metadata")
-                        .font(.headline)
+                        .font(.system(size: 18, weight: .semibold))
                     Text(fileName)
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
                 Spacer()
@@ -67,18 +67,18 @@ struct MetadataEditor: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Comments")
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                             TextEditor(text: $comments)
                                 .frame(height: 80)
-                                .font(.body)
+                                .font(.system(size: 18))
                                 .border(Color.secondary.opacity(0.3))
                         }
 
                         if let error = errorMessage {
                             Text(error)
                                 .foregroundColor(.red)
-                                .font(.caption)
+                                .font(.system(size: 18))
                         }
                     }
                     .padding()
@@ -281,7 +281,7 @@ struct MetadataTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
             TextField("", text: $text)
                 .textFieldStyle(.roundedBorder)

@@ -49,13 +49,13 @@ struct PanePreview: View {
             if let item {
                 content(for: item)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                Text(item.name).font(.caption).bold().lineLimit(1).truncationMode(.middle)
+                Text(item.name).font(.system(size: 18)).bold().lineLimit(1).truncationMode(.middle)
                 if !caption.isEmpty {
-                    Text(caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    Text(caption).font(.system(size: 18)).foregroundStyle(.secondary).lineLimit(1)
                 }
             } else {
                 Spacer()
-                Text("Select a file or folder to preview it").font(.caption).foregroundStyle(.secondary)
+                Text("Select a file or folder to preview it").font(.system(size: 18)).foregroundStyle(.secondary)
                 Spacer()
             }
         }
@@ -76,7 +76,7 @@ struct PanePreview: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .shadow(radius: 2)
         } else if loading {
-            ProgressView().controlSize(.small)
+            ProgressView().controlSize(.regular)
         } else {
             Image(nsImage: NSWorkspace.shared.icon(forFile: item.path))
                 .resizable().aspectRatio(contentMode: .fit).frame(maxWidth: 96, maxHeight: 96)
@@ -88,20 +88,20 @@ struct PanePreview: View {
             Text("\(f.items.formatted()) \(f.items == 1 ? "item" : "items")"
                  + " · \(ByteCountFormatter.string(fromByteCount: f.bytes, countStyle: .file))\(f.complete ? "" : "+")"
                  + " in \(f.files.formatted()) \(f.files == 1 ? "file" : "files")")
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundStyle(.secondary)
             if f.counting {
-                Text("Counting…").font(.caption2).foregroundStyle(.secondary)
+                Text("Counting…").font(.system(size: 18)).foregroundStyle(.secondary)
             } else if !f.complete {
                 Text("A large folder — counted for a few seconds, so the total is at least this.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.system(size: 18)).foregroundStyle(.secondary)
             }
             if !f.thumbs.isEmpty {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 64, maximum: 96), spacing: 8)], spacing: 8) {
                     ForEach(Array(f.thumbs.enumerated()), id: \.offset) { _, t in
                         VStack(spacing: 2) {
                             Image(nsImage: t.image).resizable().aspectRatio(contentMode: .fit).frame(height: 56)
-                            Text(t.name).font(.caption2).lineLimit(1).truncationMode(.middle)
+                            Text(t.name).font(.system(size: 18)).lineLimit(1).truncationMode(.middle)
                         }
                     }
                 }

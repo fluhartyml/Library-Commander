@@ -28,6 +28,8 @@ struct Library_CommanderApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // His rule: no text under 18 pt unless he says otherwise. Unstyled text inherits this.
+                .font(.system(size: 18))
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 // The build number rides in the window title so it can be read off
                 // the screen without opening About. His ask, 2026-09-11, and he was
@@ -95,6 +97,7 @@ struct Library_CommanderApp: App {
 
         Window("Library", id: LibraryWindow.id) {
             LibraryCommanderView()
+                .font(.system(size: 18))   // 18 pt floor — his rule
                 .environment(libraryService)
                 .environment(lockerService)
                 .task {
@@ -131,7 +134,7 @@ private func showAboutPanel() {
     let credits = NSMutableAttributedString(
         string: BuildStamp.summary,
         attributes: [
-            .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular),
+            .font: NSFont.monospacedSystemFont(ofSize: 18, weight: .regular),
             .foregroundColor: NSColor.secondaryLabelColor
         ]
     )
@@ -146,7 +149,7 @@ private func showAboutPanel() {
             + "Copyright covers Michael Fluharty's original work only. It does not claim or "
             + "intend ownership of the work of the original developers named here.",
         attributes: [
-            .font: NSFont.systemFont(ofSize: 11),
+            .font: NSFont.systemFont(ofSize: 18),
             .foregroundColor: NSColor.secondaryLabelColor
         ]
     ))

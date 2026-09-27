@@ -34,7 +34,7 @@ struct PlaylistsPaneView: View {
             .padding()
 
             Text("First \(Self.visibleCharCount) characters shown bold — that's the practical display limit before most music apps truncate. Double-click a name to rename.")
-                .font(.system(size: 14))
+                .font(.system(size: 18))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
@@ -115,20 +115,20 @@ struct PlaylistsPaneView: View {
         let overflow = max(0, count - Self.visibleCharCount)
         HStack(spacing: 6) {
             Text("\(count) chars")
-                .font(.system(size: 13, design: .monospaced))
+                .font(.system(size: 18, design: .monospaced))
                 .foregroundStyle(count > Self.visibleCharCount ? .red : .secondary)
             Text("•")
                 .foregroundStyle(.secondary)
             Text("truncates at \(Self.visibleCharCount)")
-                .font(.system(size: 13))
+                .font(.system(size: 18))
                 .foregroundStyle(.secondary)
             if overflow > 0 {
                 Text("(\(overflow) over)")
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 18, design: .monospaced))
                     .foregroundStyle(.red)
             } else if count == Self.visibleCharCount {
                 Text("(at limit)")
-                    .font(.system(size: 13))
+                    .font(.system(size: 18))
                     .foregroundStyle(.orange)
             }
         }

@@ -22,16 +22,16 @@ struct ImagePreview: View {
             // Header
             HStack {
                 Image(systemName: "photo")
-                    .font(.title3)
+                    .font(.system(size: 20))
                 Text(fileName)
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer()
 
                 if let img = image {
                     Text("\(Int(img.size.width)) × \(Int(img.size.height))")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
                 }
 
@@ -74,7 +74,7 @@ struct ImagePreview: View {
             // Footer with zoom controls
             HStack {
                 Text(filePath)
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -89,7 +89,7 @@ struct ImagePreview: View {
                         .buttonStyle(.borderless)
 
                         Text("\(Int(scale * 100))%")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .frame(width: 50)
 
                         Button(action: { scale = min(5.0, scale + 0.25) }) {
@@ -99,7 +99,7 @@ struct ImagePreview: View {
 
                         Button(action: { scale = 1.0 }) {
                             Text("100%")
-                                .font(.caption)
+                                .font(.system(size: 18))
                         }
                         .buttonStyle(.bordered)
                     }

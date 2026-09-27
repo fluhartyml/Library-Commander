@@ -42,16 +42,16 @@ struct UnifiedQueueReviewPanel: View {
             // Header
             HStack {
                 Image(systemName: "list.bullet.clipboard")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .foregroundColor(.orange)
                 Text("Review Queue")
-                    .font(.title2)
+                    .font(.system(size: 22))
                     .fontWeight(.semibold)
 
                 Spacer()
 
                 Text("\(totalCount) files")
-                    .font(.caption)
+                    .font(.system(size: 18))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -217,9 +217,9 @@ struct UnifiedQueueReviewPanel: View {
                 .font(.system(size: 48))
                 .foregroundColor(.green)
             Text(title)
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
             Text(subtitle)
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
             Spacer()
         }
@@ -811,27 +811,27 @@ struct GenreSelectionRow: View {
                 HStack(spacing: 12) {
                     // Music icon
                     Image(systemName: "music.note")
-                        .font(.title2)
+                        .font(.system(size: 22))
                         .foregroundColor(.purple)
                         .frame(width: 32)
 
                     // Song info
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title ?? "Unknown Title")
-                            .font(.headline)
+                            .font(.system(size: 18, weight: .semibold))
                             .lineLimit(1)
                             .foregroundColor(.primary)
 
                         HStack(spacing: 4) {
                             if let artist = item.artist {
                                 Text(artist)
-                                    .font(.subheadline)
+                                    .font(.system(size: 18))
                                     .foregroundColor(.secondary)
                             }
                         }
 
                         Text(item.fileName)
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
 
@@ -844,7 +844,7 @@ struct GenreSelectionRow: View {
                                             selectedGenre = genre
                                         }) {
                                             Text(genre)
-                                                .font(.caption2)
+                                                .font(.system(size: 18))
                                                 .padding(.horizontal, 8)
                                                 .padding(.vertical, 4)
                                                 .background(selectedGenre == genre ? Color.purple : Color.secondary.opacity(0.2))
@@ -868,10 +868,10 @@ struct GenreSelectionRow: View {
                         }) {
                             if isProcessing {
                                 ProgressView()
-                                    .controlSize(.small)
+                                    .controlSize(.regular)
                             } else {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.title2)
+                                    .font(.system(size: 22))
                                     .foregroundColor(.green)
                             }
                         }
@@ -885,7 +885,7 @@ struct GenreSelectionRow: View {
                         onPlay(item.filePath)
                     }) {
                         Image(systemName: (currentlyPlayingPath == item.filePath && isPlaying) ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.title2)
+                            .font(.system(size: 22))
                             .foregroundColor((currentlyPlayingPath == item.filePath && isPlaying) ? .orange : .blue)
                     }
                     .buttonStyle(.plain)
@@ -894,7 +894,7 @@ struct GenreSelectionRow: View {
                     // Expand/collapse chevron
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.secondary)
-                        .font(.title3)
+                        .font(.system(size: 20))
                 }
             }
             .buttonStyle(.plain)
@@ -907,7 +907,7 @@ struct GenreSelectionRow: View {
                     if item.allGenres.isEmpty {
                         // No genres - manual entry
                         Text("No genres detected - enter manually:")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         TextField("Enter genre", text: $customGenre)
@@ -915,11 +915,11 @@ struct GenreSelectionRow: View {
                     } else if item.allGenres.count == 1 {
                         // Single genre - just show it
                         Text("Genre:")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         Text(item.allGenres[0])
-                            .font(.body)
+                            .font(.system(size: 18))
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color.purple.opacity(0.1))
@@ -927,7 +927,7 @@ struct GenreSelectionRow: View {
                     } else {
                         // Multiple genres - picker
                         Text("Select genre (\(item.allGenres.count) options):")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         Picker("Genre", selection: $selectedGenre) {
@@ -946,7 +946,7 @@ struct GenreSelectionRow: View {
                                         selectedGenre = genre
                                     }) {
                                         Text(genre)
-                                            .font(.caption)
+                                            .font(.system(size: 18))
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 6)
                                             .background(selectedGenre == genre ? Color.purple : Color.secondary.opacity(0.2))
@@ -976,7 +976,7 @@ struct GenreSelectionRow: View {
                         }) {
                             if isProcessing {
                                 ProgressView()
-                                    .controlSize(.small)
+                                    .controlSize(.regular)
                             } else {
                                 Label("Apply & Rename", systemImage: "checkmark.circle")
                             }
@@ -1083,27 +1083,27 @@ struct UnmatchedItemRow: View {
                 HStack(spacing: 12) {
                     // Warning icon
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.title2)
+                        .font(.system(size: 22))
                         .foregroundColor(.orange)
                         .frame(width: 32)
 
                     // File info
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.fileName)
-                            .font(.body)
+                            .font(.system(size: 18))
                             .lineLimit(1)
                             .foregroundColor(.primary)
 
                         if let error = item.lastError {
                             Text(error)
-                                .font(.caption)
+                                .font(.system(size: 18))
                                 .foregroundColor(.red)
                                 .lineLimit(1)
                         }
 
                         if item.attemptCount > 1 {
                             Text("Attempts: \(item.attemptCount)")
-                                .font(.caption2)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -1115,7 +1115,7 @@ struct UnmatchedItemRow: View {
                         onPlay(item.filePath)
                     }) {
                         Image(systemName: (currentlyPlayingPath == item.filePath && isPlaying) ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.title2)
+                            .font(.system(size: 22))
                             .foregroundColor((currentlyPlayingPath == item.filePath && isPlaying) ? .orange : .blue)
                     }
                     .buttonStyle(.plain)
@@ -1124,7 +1124,7 @@ struct UnmatchedItemRow: View {
                     // Expand/collapse chevron
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.secondary)
-                        .font(.title3)
+                        .font(.system(size: 20))
                 }
             }
             .buttonStyle(.plain)
@@ -1135,35 +1135,35 @@ struct UnmatchedItemRow: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("File Path:")
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(.secondary)
 
                     Text(item.filePath)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(size: 18, design: .monospaced))
                         .foregroundColor(.secondary)
                         .textSelection(.enabled)
 
                     // Explanation
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Detection Options:")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.clockwise")
-                                .font(.caption2)
+                                .font(.system(size: 18))
                                 .foregroundColor(.orange)
                             Text("Quick Retry: Samples first 10 seconds")
-                                .font(.caption2)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
 
                         HStack(spacing: 4) {
                             Image(systemName: "magnifyingglass.circle.fill")
-                                .font(.caption2)
+                                .font(.system(size: 18))
                                 .foregroundColor(.purple)
                             Text("Deep Dive: Samples 30s, 60s, 90s, 120s positions (skips intros/DJs)")
-                                .font(.caption2)
+                                .font(.system(size: 18))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -1174,18 +1174,18 @@ struct UnmatchedItemRow: View {
                     // Manual entry section - always available
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Manual Entry (if you know the song):")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         HStack(spacing: 8) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Artist").font(.caption2).foregroundColor(.secondary)
+                                Text("Artist").font(.system(size: 18)).foregroundColor(.secondary)
                                 TextField("Artist", text: $manualArtist)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 150)
                             }
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Title").font(.caption2).foregroundColor(.secondary)
+                                Text("Title").font(.system(size: 18)).foregroundColor(.secondary)
                                 TextField("Title", text: $manualTitle)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 150)
@@ -1194,7 +1194,7 @@ struct UnmatchedItemRow: View {
 
                         // Genre quick select
                         Text("Genre:")
-                            .font(.caption)
+                            .font(.system(size: 18))
                             .foregroundColor(.secondary)
 
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -1204,7 +1204,7 @@ struct UnmatchedItemRow: View {
                                         manualGenre = genre
                                     }) {
                                         Text(genre)
-                                            .font(.caption)
+                                            .font(.system(size: 18))
                                             .padding(.horizontal, 10)
                                             .padding(.vertical, 6)
                                             .background(manualGenre == genre ? Color.green : Color.secondary.opacity(0.2))
@@ -1249,7 +1249,7 @@ struct UnmatchedItemRow: View {
                         }) {
                             if isProcessing {
                                 ProgressView()
-                                    .controlSize(.small)
+                                    .controlSize(.regular)
                             } else {
                                 Label("Quick Retry", systemImage: "arrow.clockwise")
                             }

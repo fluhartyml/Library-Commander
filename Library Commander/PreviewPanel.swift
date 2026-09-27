@@ -28,7 +28,7 @@ struct PreviewPanel: View {
             // Header with file name and close button
             HStack {
                 Text(fileItem.name)
-                    .font(.headline)
+                    .font(.system(size: 18, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer()
@@ -144,7 +144,7 @@ struct AudioPreviewContent: View {
             HStack {
                 if let message = saveMessage {
                     Text(message)
-                        .font(.caption)
+                        .font(.system(size: 18))
                         .foregroundColor(message.contains("✅") ? .green : .red)
                 }
                 Spacer()
@@ -152,7 +152,7 @@ struct AudioPreviewContent: View {
                     HStack {
                         if isSaving {
                             ProgressView()
-                                .controlSize(.small)
+                                .controlSize(.regular)
                         }
                         Text("Save Changes")
                     }
@@ -380,12 +380,12 @@ struct VideoPreviewContent: View {
                 .foregroundColor(.secondary)
 
             Text("Video preview")
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Double-click to play in media player")
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -402,7 +402,7 @@ struct TextPreviewContent: View {
 
     var body: some View {
         TextEditor(text: .constant(content))
-            .font(.system(.body, design: .monospaced))
+            .font(.system(size: 18, design: .monospaced))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: filePath) {
             loadTextContent()
@@ -433,12 +433,12 @@ struct QuickLookPreviewContent: View {
                 .foregroundColor(.secondary)
 
             Text("Preview not available")
-                .font(.headline)
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Use Command-4 to edit")
-                .font(.caption)
+                .font(.system(size: 18))
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
