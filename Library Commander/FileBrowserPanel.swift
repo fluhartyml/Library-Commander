@@ -690,6 +690,19 @@ struct FileBrowserPanel: View {
                             selectedItems = [item.id]
                             lastSelectedItem = item
                             fileSystem.lastVisitedFolder = nil // Clear after use
+                        } else {
+                            // Build 25 — every reload makes new IDs, so a highlight held by ID
+                            // vanished. His bug: sorting ← from the right pane "took the highlight
+                            // away from the destination folder so i couldnt press the left arrow
+                            // for the next file". Carry the highlight across by PATH.
+                            let kept = Set(oldValue.filter { selectedItems.contains($0.id) }.map(\.path))
+                            guard !kept.isEmpty else { return }
+                            let carried = newValue.filter { kept.contains($0.path) }
+                            let ids = Set(carried.map(\.id))
+                            if ids != selectedItems { selectedItems = ids }
+                            if let last = lastSelectedItem, let again = carried.first(where: { $0.path == last.path }) {
+                                lastSelectedItem = again
+                            }
                         }
                     }
                     // DJ CURATION KEYBOARD SHORTCUTS
