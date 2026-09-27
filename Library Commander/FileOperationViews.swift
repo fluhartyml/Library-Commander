@@ -35,11 +35,64 @@ struct FileOperationSheet: View {
             case .undoLast(let log): UndoLastView(log: log, controller: controller)
             case .emptyFolders(let q): EmptyFoldersView(question: q, controller: controller)
             case .extractOptions(let r): ExtractOptionsView(request: r, controller: controller)
+            case .deleteConfirm(let r): DeleteConfirmView(request: r, controller: controller)
             }
         }
         .padding(24)
         .frame(minWidth: 620, idealWidth: 700, maxWidth: 820)
         .interactiveDismissDisabled()
+    }
+}
+
+// MARK: - Delete — asks first (build 14)
+
+private struct DeleteConfirmView: View {
+    let request: FileOperationController.DeleteRequest
+    let controller: FileOperationController
+
+    private var title: String {
+        let what = request.items.count == 1 ? "“\(request.lines[0].name)”" : "\(request.items.count) items"
+        return request.anyPermanent ? "Delete \(what) permanently?" : "Move \(what) to the Trash?"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label(title, systemImage: request.anyPermanent ? "exclamationmark.triangle.fill" : "trash")
+                .font(.lc(22, weight: .semibold))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(request.lines.enumerated()), id: \.offset) { _, line in
+                        HStack(spacing: 8) {
+                            Image(systemName: line.isFolder ? "folder.fill" : "doc")
+                            Text(line.name).lineLimit(1).truncationMode(.middle)
+                            if line.isFolder {
+                                Text(line.itemsInside == 0 ? "empty" : "\(line.itemsInside) item\(line.itemsInside == 1 ? "" : "s") inside")
+                                    .foregroundStyle(line.itemsInside == 0 ? Color.secondary : Color.orange)
+                            }
+                        }
+                        .font(.lc(18))
+                    }
+                }
+            }
+            .frame(maxHeight: 260)
+            Text(request.anyPermanent
+                 ? "A network drive has no Trash, so this cannot be undone."
+                 : "You can put it back from the Trash until the Trash is emptied.")
+                .font(.lc(18))
+                .foregroundStyle(request.anyPermanent ? Color.red : Color.secondary)
+            HStack {
+                Spacer()
+                Button("Cancel") { controller.answerDelete(request, go: false) }
+                    .keyboardShortcut(.cancelAction)
+                    .controlSize(.large)
+                // No Return shortcut on purpose — a delete takes a click, never a stray key.
+                Button(request.anyPermanent ? "Delete Permanently" : "Move to Trash", role: .destructive) {
+                    controller.answerDelete(request, go: true)
+                }
+                .controlSize(.large)
+            }
+            .font(.lc(18))
+        }
     }
 }
 

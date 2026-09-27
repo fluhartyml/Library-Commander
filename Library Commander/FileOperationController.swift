@@ -63,6 +63,18 @@ final class FileOperationController {
         case emptyFolders(EmptyFoldersQuestion)
         /// 7.6 / 7.9 — before an Extract: Copy or Move, and which file type.
         case extractOptions(ExtractRequest)
+        /// Build 14 — his ask: "make delete use the trash and ask first".
+        case deleteConfirm(DeleteRequest)
+    }
+
+    /// A delete waiting for his answer. Nothing is touched until he presses the button.
+    struct DeleteRequest {
+        struct Line { let name: String; let isFolder: Bool; let itemsInside: Int }
+        let items: [URL]
+        let lines: [Line]
+        /// True when any item is on a drive with no Trash (a network share) — that part is permanent.
+        let anyPermanent: Bool
+        let onFinish: ((FileOpSummary) -> Void)?
     }
 
     /// What Extract was pointed at, waiting for his choices.
@@ -183,9 +195,34 @@ final class FileOperationController {
         begin(job, sources: sources, target: target, onFinish: onFinish) { await engine.run() }
     }
 
+    /// Delete ASKS FIRST (build 14 — his ask, 2026-09-27: "make delete use the trash and ask
+    /// first"; he was glad a refused delete had spared a folder that was not empty). The
+    /// sheet names each item and how much is inside a folder; the work waits for the button.
+    func delete(_ items: [URL], onFinish: ((FileOpSummary) -> Void)? = nil) {
+        guard !items.isEmpty else { return }
+        let fm = FileManager.default
+        let lines: [DeleteRequest.Line] = items.map { url in
+            var isDir: ObjCBool = false
+            let folder = fm.fileExists(atPath: url.path, isDirectory: &isDir) && isDir.boolValue
+            let inside = folder ? ((try? fm.contentsOfDirectory(atPath: url.path))?.filter { $0 != ".DS_Store" }.count ?? 0) : 0
+            return .init(name: url.lastPathComponent, isFolder: folder, itemsInside: inside)
+        }
+        let anyPermanent = items.contains {
+            ((try? $0.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal ?? true) == false
+        }
+        show(.deleteConfirm(DeleteRequest(items: items, lines: lines, anyPermanent: anyPermanent,
+                                          onFinish: onFinish)), for: nil)
+    }
+
+    /// His answer on the delete sheet.
+    func answerDelete(_ request: DeleteRequest, go: Bool) {
+        finishPrompt()
+        if go { performDelete(request.items, onFinish: request.onFinish) }
+    }
+
     /// Delete as a job (build 70): Trash on a drive attached to this Mac, permanent on a
     /// network drive. Off the main thread, one bar, Pause and Cancel like the others.
-    func delete(_ items: [URL], onFinish: ((FileOpSummary) -> Void)? = nil) {
+    private func performDelete(_ items: [URL], onFinish: ((FileOpSummary) -> Void)?) {
         guard !items.isEmpty else { return }
         if let refusal = refusal(for: items, kind: .delete) {
             show(.summary(refusal), for: nil)
