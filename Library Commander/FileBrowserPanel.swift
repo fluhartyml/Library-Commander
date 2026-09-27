@@ -52,7 +52,7 @@ struct FileBrowserPanel: View {
     @Binding var isCurrentlyPlaying: Bool  // Current playback state
     let onSwitchToOpposite: () -> Void
     var getOppositeFirstMediaURL: (() -> URL?)? = nil  // For crossfade to opposite pane
-    /// Which side this pane is on, so Nuclear mode's ← / → can point where the file goes.
+    /// Which side this pane is on, so Arrow Key Sorting's ← / → can point where the file goes.
     var isRightPane: Bool = false
     let otherPanePath: String
     let onRefreshOtherPane: () -> Void
@@ -96,11 +96,11 @@ struct FileBrowserPanel: View {
     @FocusState private var isNewItemFocused: Bool
     @FocusState private var isRenameFocused: Bool
 
-    // Nuclear mode state
-    /// Nuclear mode lives in Accessibility now — one setting for both panes.
-    private var nuclearModeEnabled: Bool { AccessibilitySettings.shared.nuclearMode }
-    @State private var showNuclearToast = false
-    @State private var nuclearToastMessage = ""
+    // Arrow Key Sorting state
+    /// Arrow Key Sorting lives in Accessibility now — one setting for both panes.
+    private var arrowKeySortingOn: Bool { AccessibilitySettings.shared.arrowKeySorting }
+    @State private var showToast = false
+    @State private var toastMessage = ""
     @State private var lastMovedFile: (source: String, destination: String, fileName: String)? = nil
     /// Copy and Move through the engine — questions, progress, summary.
     @Environment(FileOperationController.self) private var fileOps: FileOperationController?
@@ -317,9 +317,9 @@ struct FileBrowserPanel: View {
 
                 Spacer()
 
-                // Nuclear mode's ☢️ button moved to Library Commander › Accessibility… (his idea, 2026-09-27).
+                // Arrow Key Sorting's ☢️ button moved to Library Commander › Accessibility… (his idea, 2026-09-27).
 
-                // Up one folder sits immediately right of Nuclear Mode.
+                // Up one folder sits immediately right of Arrow Key Sorting.
                 // His placement, 2026-09-11. It was previously in the middle of
                 // the row between the music actions and the path.
                 if fileSystem.canNavigateUp() {
@@ -727,30 +727,30 @@ struct FileBrowserPanel: View {
                         }
                         return .handled
                     }
-                    // NUCLEAR MODE ARROW KEYS
+                    // Arrow Key Sorting ARROW KEYS
                     .onKeyPress(.leftArrow) {
                         if renamingItem != nil { return .ignored }
-                        if nuclearModeEnabled {
+                        if arrowKeySortingOn {
                             // His ask 2026-09-27: "make them follow direction". The arrow that
                             // points at the other pane sends; the one pointing away undoes.
-                            if isRightPane { nuclearModeMove() } else { undoLastMove() }
+                            if isRightPane { arrowKeySortMove() } else { undoLastMove() }
                             return .handled
                         }
                         return .ignored  // Let table handle arrow navigation
                     }
                     .onKeyPress(.rightArrow) {
                         if renamingItem != nil { return .ignored }
-                        if nuclearModeEnabled {
+                        if arrowKeySortingOn {
                             // Left pane: → sends right. Right pane: → undoes (pulls it back).
-                            if isRightPane { undoLastMove() } else { nuclearModeMove() }
+                            if isRightPane { undoLastMove() } else { arrowKeySortMove() }
                             return .handled
                         }
                         return .ignored  // Let table handle arrow navigation
                     }
                     .onKeyPress(.upArrow) {
                         if renamingItem != nil { return .ignored }
-                        if nuclearModeEnabled {
-                            // ↑ = Previous track + auto-play (nuclear mode)
+                        if arrowKeySortingOn {
+                            // ↑ = Previous track + auto-play (Arrow Key Sorting)
                             playPreviousTrack()
                             return .handled
                         } else if isCurrentlyPlaying {
@@ -765,8 +765,8 @@ struct FileBrowserPanel: View {
                     }
                     .onKeyPress(.downArrow) {
                         if renamingItem != nil { return .ignored }
-                        if nuclearModeEnabled {
-                            // ↓ = Next track + auto-play (nuclear mode)
+                        if arrowKeySortingOn {
+                            // ↓ = Next track + auto-play (Arrow Key Sorting)
                             advanceToNextTrack()
                             return .handled
                         } else if isCurrentlyPlaying {
@@ -937,14 +937,14 @@ struct FileBrowserPanel: View {
                 if !fileStillExists {
                     // File was removed - check if it was moved or deleted
                     if isMovingCurrentMedia {
-                        // File was moved - auto-advance to next track if auto-play is enabled OR nuclear mode is on
+                        // File was moved - auto-advance to next track if auto-play is enabled OR Arrow Key Sorting is on
                         isMovingCurrentMedia = false
 
                         // Force stop current player before advancing
                         currentMedia = nil
                         showMediaPlayer = false
 
-                        if autoPlayNext || nuclearModeEnabled {
+                        if autoPlayNext || arrowKeySortingOn {
                             // Small delay to let player fully stop before loading next track
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 // Find the media files (audio/video only)
@@ -1089,8 +1089,8 @@ struct FileBrowserPanel: View {
             }
         }
         .overlay(alignment: .top) {
-            if showNuclearToast {
-                Text(nuclearToastMessage)
+            if showToast {
+                Text(toastMessage)
                     .font(.lc(18, weight: .semibold))
                     .foregroundColor(.white)
                     .padding()
@@ -1102,16 +1102,16 @@ struct FileBrowserPanel: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut, value: showNuclearToast)
+        .animation(.easeInOut, value: showToast)
         .onChange(of: selectedItems) { oldValue, newValue in
             // When selection changes, update player if it's a media file
-            // BUT don't interfere with nuclear mode or active playback navigation
+            // BUT don't interfere with Arrow Key Sorting or active playback navigation
             if let selectedID = newValue.first,
                let selectedFile = fileSystem.files.first(where: { $0.id == selectedID }),
                isMediaFile(selectedFile) {
 
-                // In nuclear mode, don't reset autoplay - keyboard navigation handles it
-                if nuclearModeEnabled {
+                // In Arrow Key Sorting, don't reset autoplay - keyboard navigation handles it
+                if arrowKeySortingOn {
                     return
                 }
 
@@ -1180,13 +1180,13 @@ struct FileBrowserPanel: View {
 
                     // Show toast with result
                     if result.success {
-                        nuclearToastMessage = "✅ \(result.title ?? selectedFile.name)"
+                        toastMessage = "✅ \(result.title ?? selectedFile.name)"
                     } else {
-                        nuclearToastMessage = "❌ No match found"
+                        toastMessage = "❌ No match found"
                     }
-                    showNuclearToast = true
+                    showToast = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        showNuclearToast = false
+                        showToast = false
                     }
 
                     // Follow "Next" toggle - advance and continue scanning if enabled
@@ -1215,10 +1215,10 @@ struct FileBrowserPanel: View {
             }
         } else {
             // No file selected - show hint
-            nuclearToastMessage = "Select a file to scan"
-            showNuclearToast = true
+            toastMessage = "Select a file to scan"
+            showToast = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showNuclearToast = false
+                showToast = false
             }
         }
     }
@@ -1303,13 +1303,13 @@ struct FileBrowserPanel: View {
 
                     // Show toast with result
                     if result.success {
-                        nuclearToastMessage = "✅ \(result.title ?? selectedFile.name)"
+                        toastMessage = "✅ \(result.title ?? selectedFile.name)"
                     } else {
-                        nuclearToastMessage = "❌ \(result.error ?? "No match")"
+                        toastMessage = "❌ \(result.error ?? "No match")"
                     }
-                    showNuclearToast = true
+                    showToast = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        showNuclearToast = false
+                        showToast = false
                     }
 
                     // Follow "Next" toggle - advance and continue scanning if enabled
@@ -1338,10 +1338,10 @@ struct FileBrowserPanel: View {
             }
         } else {
             // No file selected - show hint
-            nuclearToastMessage = "Select a file to search"
-            showNuclearToast = true
+            toastMessage = "Select a file to search"
+            showToast = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showNuclearToast = false
+                showToast = false
             }
         }
     }
@@ -1583,8 +1583,8 @@ struct FileBrowserPanel: View {
 
         // Check if file exists at destination
         if fileManager.fileExists(atPath: destURL.path) {
-            // Nuclear mode: auto-replace without asking
-            if nuclearModeEnabled {
+            // Arrow Key Sorting: auto-replace without asking
+            if arrowKeySortingOn {
                 executeMoveToOtherPane(item: item, replace: true)
                 return
             }
@@ -1743,7 +1743,7 @@ struct FileBrowserPanel: View {
         }
     }
 
-    // Advance to next track in the current folder (nuclear mode)
+    // Advance to next track in the current folder (Arrow Key Sorting)
     private func advanceToNextTrack() {
         let mediaFiles = fileSystem.files.filter { isMediaFile($0) }
         guard !mediaFiles.isEmpty else {
@@ -1782,7 +1782,7 @@ struct FileBrowserPanel: View {
         }
     }
 
-    // Play previous track in the current folder (nuclear mode)
+    // Play previous track in the current folder (Arrow Key Sorting)
     private func playPreviousTrack() {
         let mediaFiles = fileSystem.files.filter { isMediaFile($0) }
         guard !mediaFiles.isEmpty else {
@@ -1820,13 +1820,13 @@ struct FileBrowserPanel: View {
         }
     }
 
-    // Nuclear mode: Undo last move operation
+    // Arrow Key Sorting: Undo last move operation
     private func undoLastMove() {
         guard let lastMove = lastMovedFile else {
-            nuclearToastMessage = "⚠️ No move to undo"
-            showNuclearToast = true
+            toastMessage = "⚠️ No move to undo"
+            showToast = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showNuclearToast = false
+                showToast = false
             }
             return
         }
@@ -1838,10 +1838,10 @@ struct FileBrowserPanel: View {
 
             // Check if file still exists at destination
             guard fileManager.fileExists(atPath: currentLocation.path) else {
-                nuclearToastMessage = "⚠️ File no longer exists"
-                showNuclearToast = true
+                toastMessage = "⚠️ File no longer exists"
+                showToast = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    showNuclearToast = false
+                    showToast = false
                 }
                 lastMovedFile = nil
                 return
@@ -1857,25 +1857,25 @@ struct FileBrowserPanel: View {
             fileSystem.loadFiles()
             onRefreshOtherPane()
 
-            nuclearToastMessage = "↩️ Undone: \(lastMove.fileName)"
-            showNuclearToast = true
+            toastMessage = "↩️ Undone: \(lastMove.fileName)"
+            showToast = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showNuclearToast = false
+                showToast = false
             }
             print("☢️ Undid move: \(lastMove.fileName)")
 
         } catch {
             print("Error undoing move: \(error)")
-            nuclearToastMessage = "⚠️ Undo failed"
-            showNuclearToast = true
+            toastMessage = "⚠️ Undo failed"
+            showToast = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showNuclearToast = false
+                showToast = false
             }
         }
     }
 
-    // Nuclear mode: Move current track to other pane + auto-play next
-    private func nuclearModeMove() {
+    // Arrow Key Sorting: Move current track to other pane + auto-play next
+    private func arrowKeySortMove() {
         guard let current = currentMedia else {
             print("No track currently playing to move")
             return
@@ -1933,7 +1933,7 @@ struct FileBrowserPanel: View {
 
     /// Copy or move to the other pane through FileOperationEngine: every clash is asked
     /// about before anything is touched, a move verifies each copy before deleting, and a
-    /// summary says what happened. (Nuclear mode and the M key keep their own fast path.)
+    /// summary says what happened. (Arrow Key Sorting and the M key keep their own fast path.)
     /// His ask, 2026-09-19: "if im in a pane and i just want to move the selected file or
     /// folder to the designated media folder why cant i?" · "i want add and move to media
     /// library options added please". Exactly what is selected, as is, into the folder
