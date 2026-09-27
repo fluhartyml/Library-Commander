@@ -63,6 +63,7 @@ struct FileBrowserPanel: View {
     @State private var isCreatingNewFolder = false
     @State private var showDrivePicker = false
     @State private var renameError: String?
+    @State private var fileErrorTitle = "Rename failed"
     /// When the current single selection was made — for Finder's slow-click rename.
     @State private var selectedSince: Date?
     @State private var isCreatingNewFile = false
@@ -156,7 +157,7 @@ struct FileBrowserPanel: View {
                 .popover(isPresented: $showDrivePicker, arrowEdge: .bottom) {
                     drivePicker
                 }
-                .alert("Rename failed", isPresented: Binding(get: { renameError != nil }, set: { if !$0 { renameError = nil } })) {
+                .alert(fileErrorTitle, isPresented: Binding(get: { renameError != nil }, set: { if !$0 { renameError = nil } })) {
                     Button("OK") { renameError = nil }
                 } message: {
                     Text(renameError ?? "")
@@ -1492,7 +1493,13 @@ struct FileBrowserPanel: View {
             }
             cancelInlineCreation()
         } catch {
-            print("Error creating item: \(error)")
+            // Build 19: this print()ed and left his typed name in the box ("i right clicked new
+            // folder entered holding and pressed enter and nothing happened").
+            let kind = isCreatingNewFolder ? "folder" : "file"
+            let attempted = newItemName
+            cancelInlineCreation()
+            fileErrorTitle = "Could not create the \(kind)"
+            renameError = "“\(attempted)” was not created.\n\n\(error.localizedDescription)"
         }
     }
 
@@ -1525,6 +1532,7 @@ struct FileBrowserPanel: View {
             // refused rename looked done ("renamed it to goonies" — the disk never changed).
             let attempted = renameText
             cancelRename()
+            fileErrorTitle = "Rename failed"
             renameError = "“\(item.name)” was not renamed to “\(attempted)”.\n\n\(error.localizedDescription)"
         }
     }
