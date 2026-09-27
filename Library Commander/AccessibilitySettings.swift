@@ -2,7 +2,7 @@
 //  AccessibilitySettings.swift
 //  Library Commander
 //
-//  His idea, 2026-09-27: "change the Arrow Key Sorting into a library commanders accessabily
+//  His idea, 2026-09-27: "change the nuclear mode into a library commanders accessabily
 //  options toggle as well as a font size slider for accessability".
 //
 //  TEXT SIZE — his 18 pt rule has ONE granted exception, and this is it:
@@ -31,10 +31,10 @@ final class AccessibilitySettings {
         }
     }
 
-    /// Arrow Key Sorting, for both panes: ↑ ↓ step through tracks, the arrow toward the other pane
+    /// Nuclear mode, for both panes: ↑ ↓ step through tracks, the arrow toward the other pane
     /// moves the playing track there and plays the next, the arrow away undoes.
-    var arrowKeySorting: Bool {
-        didSet { UserDefaults.standard.set(arrowKeySorting, forKey: "nuclearMode") }
+    var nuclearMode: Bool {
+        didSet { UserDefaults.standard.set(nuclearMode, forKey: "nuclearMode") }
     }
 
     /// Multiplier applied to every `.lc(...)` size.
@@ -70,7 +70,7 @@ final class AccessibilitySettings {
     private init() {
         let saved = UserDefaults.standard.double(forKey: "textSize")
         textSize = saved == 0 ? Self.baseline : min(max(saved, Self.range.lowerBound), Self.range.upperBound)
-        arrowKeySorting = UserDefaults.standard.bool(forKey: "nuclearMode")
+        nuclearMode = UserDefaults.standard.bool(forKey: "nuclearMode")
         skipDeleteConfirm = UserDefaults.standard.bool(forKey: "skipDeleteConfirm")
         skipPermanentDeleteConfirm = UserDefaults.standard.bool(forKey: "skipPermanentDeleteConfirm")
     }
@@ -118,7 +118,7 @@ struct AccessibilitySettingsView: View {
             }
 
             Section {
-                Toggle("Arrow Key Sorting", isOn: $settings.arrowKeySorting)
+                Toggle("Nuclear mode", isOn: $settings.nuclearMode)
                 Text("↑ and ↓ step through tracks. The arrow pointing at the other pane moves the playing track there and plays the next one; the arrow pointing away undoes the last move.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -126,15 +126,14 @@ struct AccessibilitySettingsView: View {
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        // "Questions" read like a feedback form — his pick is the button's own words.
-                        Text("Reset All “Don’t Ask Again”")
+                        Text("Questions")
                         Text(settings.anyQuestionSilenced
                              ? "Some questions and messages are set to “Don’t ask again”."
                              : "Every question and message is showing.")
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Reset") { settings.resetAllDontAskAgain() }
+                    Button("Reset All “Don’t Ask Again”") { settings.resetAllDontAskAgain() }
                         .disabled(!settings.anyQuestionSilenced)
                 }
             }

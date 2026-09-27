@@ -57,8 +57,8 @@ struct ContentView: View {
         let leftPath = UserDefaults.standard.string(forKey: "leftPanePath") ?? NSHomeDirectory()
         let rightPath = UserDefaults.standard.string(forKey: "rightPanePath") ?? NSHomeDirectory()
 
-        _leftFileSystem = State(initialValue: FileSystemService(startPath: leftPath, sortKey: "leftPaneSort"))
-        _rightFileSystem = State(initialValue: FileSystemService(startPath: rightPath, sortKey: "rightPaneSort"))
+        _leftFileSystem = State(initialValue: FileSystemService(startPath: leftPath))
+        _rightFileSystem = State(initialValue: FileSystemService(startPath: rightPath))
     }
 
     // Left pane media player state
