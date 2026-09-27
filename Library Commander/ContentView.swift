@@ -490,6 +490,7 @@ struct ContentView: View {
                             }
                             return nil
                         },
+                        isRightPane: true,
                         otherPanePath: targetPath(from: .right),
                         onRefreshOtherPane: {
                             leftFileSystem.loadFiles()

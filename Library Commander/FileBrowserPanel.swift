@@ -52,6 +52,8 @@ struct FileBrowserPanel: View {
     @Binding var isCurrentlyPlaying: Bool  // Current playback state
     let onSwitchToOpposite: () -> Void
     var getOppositeFirstMediaURL: (() -> URL?)? = nil  // For crossfade to opposite pane
+    /// Which side this pane is on, so Nuclear mode's ← / → can point where the file goes.
+    var isRightPane: Bool = false
     let otherPanePath: String
     let onRefreshOtherPane: () -> Void
     let onNavigateOtherPane: (String) -> Void
@@ -324,7 +326,7 @@ struct FileBrowserPanel: View {
                     // ← is UNDO, not copy. The old text said copy and the code has
                     // always called undoLastMove; a tooltip that names the wrong key
                     // is worse than none on a mode that moves files.
-                    .help(nuclearModeEnabled ? "Nuclear Mode: ON (→ move + play next, ↓ next, ↑ prev, ← undo last move)" : "Nuclear Mode: OFF (tap to enable)")
+                    .help(nuclearModeEnabled ? (isRightPane ? "Nuclear Mode: ON (← move left + play next, ↓ next, ↑ prev, → undo last move)" : "Nuclear Mode: ON (→ move right + play next, ↓ next, ↑ prev, ← undo last move)") : "Nuclear Mode: OFF (tap to enable)")
 
                     // North - Up arrow (previous)
                     Text("↑")
@@ -754,8 +756,9 @@ struct FileBrowserPanel: View {
                     .onKeyPress(.leftArrow) {
                         if renamingItem != nil { return .ignored }
                         if nuclearModeEnabled {
-                            // ← = Undo last move (nuclear mode)
-                            undoLastMove()
+                            // His ask 2026-09-27: "make them follow direction". The arrow that
+                            // points at the other pane sends; the one pointing away undoes.
+                            if isRightPane { nuclearModeMove() } else { undoLastMove() }
                             return .handled
                         }
                         return .ignored  // Let table handle arrow navigation
@@ -763,8 +766,8 @@ struct FileBrowserPanel: View {
                     .onKeyPress(.rightArrow) {
                         if renamingItem != nil { return .ignored }
                         if nuclearModeEnabled {
-                            // → = Move to other pane + auto-play next (nuclear mode)
-                            nuclearModeMove()
+                            // Left pane: → sends right. Right pane: → undoes (pulls it back).
+                            if isRightPane { undoLastMove() } else { nuclearModeMove() }
                             return .handled
                         }
                         return .ignored  // Let table handle arrow navigation
