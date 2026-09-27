@@ -89,7 +89,11 @@ class FileSystemService {
 
     private let fileManager = FileManager.default
 
+    /// The last folder that opened — where a cancelled sandbox request returns to.
+    private var lastReadablePath: String? = nil
+
     init(startPath: String = NSHomeDirectory()) {
+        SandboxAccess.restoreSavedGrants()   // reopen drives he granted before
         self.currentPath = startPath
         loadMountedVolumes()
         loadFiles()
@@ -217,7 +221,24 @@ class FileSystemService {
                 }
             }
 
+            lastReadablePath = currentPath
+
         } catch {
+            // Sandbox: a drive or folder he has not granted yet. Ask, instead of silently
+            // bouncing to "home" — which inside the sandbox is the app's own container.
+            if SandboxAccess.isPermissionDenied(error) {
+                let blocked = currentPath
+                if let granted = SandboxAccess.requestAccess(to: blocked) {
+                    currentPath = granted.path
+                    loadFiles()
+                } else if let back = lastReadablePath, back != blocked {
+                    currentPath = back      // cancelled: stay where he was
+                    loadFiles()
+                } else {
+                    errorMessage = "Library Commander does not have permission to open '\(blocked)'."
+                }
+                return
+            }
             // If we can't access the directory, fall back to home directory
             let homeDir = FileManager.default.homeDirectoryForCurrentUser.path
             if currentPath != homeDir {
