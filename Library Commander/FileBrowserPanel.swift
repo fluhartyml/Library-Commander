@@ -48,6 +48,7 @@ struct FileBrowserPanel: View {
     @Binding var showMediaPlayer: Bool
     @Binding var autoPlayNext: Bool
     @Binding var autoPlayOpposite: Bool
+    @Binding var crossfadeEnabled: Bool
     @Binding var shouldAutoPlay: Bool  // Controls if media auto-plays on load
     @Binding var isCurrentlyPlaying: Bool  // Current playback state
     let onSwitchToOpposite: () -> Void
@@ -869,6 +870,7 @@ struct FileBrowserPanel: View {
                 isVisible: $showMediaPlayer,
                 autoPlayNext: $autoPlayNext,
                 autoPlayOpposite: $autoPlayOpposite,
+                crossfadeEnabled: $crossfadeEnabled,
                 shouldAutoPlay: $shouldAutoPlay,
                 isCurrentlyPlaying: $isCurrentlyPlaying,
                 fileSystem: fileSystem,
@@ -1120,12 +1122,16 @@ struct FileBrowserPanel: View {
                 if showMediaPlayer || currentMedia != nil {
                     // Update the current media to show new file's info
                     currentMedia = selectedFile
-                    if !isCurrentlyPlaying {
-                        // Keep it paused, just update the display
-                        shouldAutoPlay = false
-                    } else {
+                    // His rule, 2026-09-27: "if no toggle is set it should NOT play the
+                    // video selected automatically." Selecting only carries playback
+                    // over when Next, Switch or Fade is on.
+                    let anyAutoPlayToggle = autoPlayNext || autoPlayOpposite || crossfadeEnabled
+                    if isCurrentlyPlaying && anyAutoPlayToggle {
                         // Currently playing - keep playing the new track
                         shouldAutoPlay = true
+                    } else {
+                        // Paused, or no toggle on - just update the display
+                        shouldAutoPlay = false
                     }
                 } else if !isCurrentlyPlaying {
                     // No player showing and nothing playing - show player paused for selected media file

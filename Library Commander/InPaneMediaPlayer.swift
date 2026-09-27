@@ -16,6 +16,8 @@ struct InPaneMediaPlayer: View {
     @Binding var isVisible: Bool
     @Binding var autoPlayNext: Bool
     @Binding var autoPlayOpposite: Bool
+    /// Owned by ContentView beside Next and Switch, so the pane can see it too.
+    @Binding var crossfadeEnabled: Bool
     @Binding var shouldAutoPlay: Bool  // Controls if player starts immediately or paused
     @Binding var isCurrentlyPlaying: Bool  // Expose playing state to parent
     let fileSystem: FileSystemService
@@ -40,7 +42,6 @@ struct InPaneMediaPlayer: View {
     @State private var showVisualizer = true
 
     // Crossfade
-    @State private var crossfadeEnabled = false
     @State private var crossfadePlayer: AVPlayer?
     @State private var isCrossfading = false
     @State private var crossfadingToOpposite = false
