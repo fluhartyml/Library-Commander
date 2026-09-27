@@ -59,6 +59,7 @@ struct FileBrowserPanel: View {
 
     @State private var lastSelectedItem: FileItem?
     @State private var isCreatingNewFolder = false
+    @State private var showDrivePicker = false
     @State private var isCreatingNewFile = false
     @State private var newItemName = "untitled"
     @State private var renamingItem: FileItem?
@@ -127,53 +128,10 @@ struct FileBrowserPanel: View {
         VStack(spacing: 0) {
             // Path header with drive selector and up navigation
             HStack(spacing: 8) {
-                // Drive selector
-                Menu {
-                    Section("Local Drives") {
-                        ForEach(fileSystem.mountedVolumes) { volume in
-                            Button(action: {
-                                fileSystem.navigateToFolder(volume.path)
-                                currentMedia = nil
-                                showMediaPlayer = false
-                            }) {
-                                HStack {
-                                    Image(systemName: "internaldrive.fill")
-                                    Text(volume.name)
-                                }
-                            }
-                        }
-                    }
-
-                    Section("Servers") {
-                        ForEach(serverManager.servers) { server in
-                            Button(action: {
-                                Task {
-                                    await mountAndNavigate(server)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "server.rack")
-                                    Text(server.name)
-                                    Spacer()
-                                    if ServerMountService.shared.isServerMounted(server) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.green)
-                                    }
-                                }
-                            }
-                        }
-
-                        Divider()
-
-                        Button(action: {
-                            showAddServerSheet = true
-                        }) {
-                            HStack {
-                                Image(systemName: "plus.circle")
-                                Text("Add Server...")
-                            }
-                        }
-                    }
+                // Drive selector. A SwiftUI Menu is drawn by macOS at ~13 pt and ignores .font,
+                // so this is a popover the app draws itself — his 18 pt rule reaches it.
+                Button {
+                    showDrivePicker = true
                 } label: {
                     // Names the drive in large type — an icon alone did not say which one.
                     let volume = fileSystem.currentVolume
@@ -182,12 +140,16 @@ struct FileBrowserPanel: View {
                         Text(volume?.name ?? "Drive")
                             .font(.system(size: 22, weight: .bold))
                             .lineLimit(1)
+                        Image(systemName: "chevron.down")
                     }
                 }
-                .menuStyle(.borderlessButton)
+                .buttonStyle(.borderless)
                 .fixedSize()
                 .padding(.leading, 8)
                 .help("On \(fileSystem.currentVolume?.name ?? "an unknown drive") — click to switch drive or volume")
+                .popover(isPresented: $showDrivePicker, arrowEdge: .bottom) {
+                    drivePicker
+                }
 
                 // Sort method selector
                 Menu {
@@ -1450,6 +1412,53 @@ struct FileBrowserPanel: View {
         else {
             return ("doc.fill", .secondary)
         }
+    }
+
+    /// The drive list, drawn by the app at 18 pt and up.
+    private var drivePicker: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Drives").font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
+            ForEach(fileSystem.mountedVolumes) { volume in
+                pickerRow(icon: volume.path == "/" ? "internaldrive.fill" : "externaldrive.fill",
+                          title: volume.name,
+                          current: fileSystem.currentVolume?.path == volume.path) {
+                    fileSystem.navigateToFolder(volume.path)
+                    currentMedia = nil
+                    showMediaPlayer = false
+                }
+            }
+            Divider().padding(.vertical, 4)
+            Text("Servers").font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
+            ForEach(serverManager.servers) { server in
+                pickerRow(icon: "server.rack", title: server.name,
+                          current: ServerMountService.shared.isServerMounted(server)) {
+                    Task { await mountAndNavigate(server) }
+                }
+            }
+            pickerRow(icon: "plus.circle", title: "Add Server…", current: false) {
+                showAddServerSheet = true
+            }
+        }
+        .font(.system(size: 20))
+        .padding(14)
+        .frame(minWidth: 280, alignment: .leading)
+    }
+
+    private func pickerRow(icon: String, title: String, current: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            showDrivePicker = false
+            action()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: icon).frame(width: 26)
+                Text(title).lineLimit(1)
+                Spacer(minLength: 12)
+                if current { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }
+            }
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// The inline name field for New Folder / New File. One copy, drawn by both the
