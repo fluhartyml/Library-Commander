@@ -83,6 +83,9 @@ struct FileBrowserPanel: View {
     @State private var selectedFoldersForScan: [FileItem] = []
     @State private var showPlaylistsOnly = false
     @State private var isMovingCurrentMedia = false
+    /// Build 27 — playing or paused at the moment of the move. His ask: paused means "the
+    /// next video wont automatically play"; playing means the next one plays.
+    @State private var wasPlayingWhenMoved = true
     @State private var expandedFolders: Set<String> = []  // Track which folders are expanded
     @State private var folderChildren: [String: [FileItem]] = [:]  // Cache loaded children
     @State private var showDuplicateAlert = false
@@ -973,6 +976,8 @@ struct FileBrowserPanel: View {
                         if autoPlayNext || arrowKeySortingOn {
                             // Small delay to let player fully stop before loading next track
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                // Paused → load the next one ready but do NOT start it; playing → play it.
+                                shouldAutoPlay = wasPlayingWhenMoved
                                 // Find the media files (audio/video only)
                                 let mediaFiles = newFiles.filter { !$0.isDirectory && isMediaFile($0) }
                                 // Find what would have been the next file after the moved one
@@ -1630,6 +1635,7 @@ struct FileBrowserPanel: View {
         // Check if we're moving the currently playing file
         if let media = currentMedia, media.path == item.path {
             isMovingCurrentMedia = true
+            wasPlayingWhenMoved = isCurrentlyPlaying
         }
 
         do {
