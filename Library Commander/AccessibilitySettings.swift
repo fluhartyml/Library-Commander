@@ -40,22 +40,29 @@ final class AccessibilitySettings {
     /// Multiplier applied to every `.lc(...)` size.
     var scale: Double { textSize / Self.baseline }
 
-    /// Build 15 — "Don't ask again" on the delete question. Trash deletes only: a network
-    /// delete is permanent and always asks.
+    /// Build 15 — "Don't ask again" on the delete question, for Trash deletes.
     var skipDeleteConfirm: Bool {
         didSet { UserDefaults.standard.set(skipDeleteConfirm, forKey: "skipDeleteConfirm") }
+    }
+
+    /// Build 16 — his call: "the network drive also gets the dont ask again checkmark".
+    /// Kept apart from the Trash one so ticking it on a Trash delete never silences a
+    /// permanent one.
+    var skipPermanentDeleteConfirm: Bool {
+        didSet { UserDefaults.standard.set(skipPermanentDeleteConfirm, forKey: "skipPermanentDeleteConfirm") }
     }
 
     /// True when any "Don't ask again" / "Don't tell me again" box has been ticked.
     var anyQuestionSilenced: Bool {
         _ = resetTick
-        return skipDeleteConfirm || [FileOpKind.copy, .move, .delete].contains { QuietSummaries.isQuiet($0) }
+        return skipDeleteConfirm || skipPermanentDeleteConfirm || [FileOpKind.copy, .move, .delete].contains { QuietSummaries.isQuiet($0) }
     }
     private var resetTick = 0
 
     /// His ask: "the settings nneeds a reset never ask again check boxes everywhere".
     func resetAllDontAskAgain() {
         skipDeleteConfirm = false
+        skipPermanentDeleteConfirm = false
         QuietSummaries.showAllAgain()
         resetTick += 1
     }
@@ -65,6 +72,7 @@ final class AccessibilitySettings {
         textSize = saved == 0 ? Self.baseline : min(max(saved, Self.range.lowerBound), Self.range.upperBound)
         nuclearMode = UserDefaults.standard.bool(forKey: "nuclearMode")
         skipDeleteConfirm = UserDefaults.standard.bool(forKey: "skipDeleteConfirm")
+        skipPermanentDeleteConfirm = UserDefaults.standard.bool(forKey: "skipPermanentDeleteConfirm")
     }
 }
 

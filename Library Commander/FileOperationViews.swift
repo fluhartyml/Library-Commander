@@ -82,20 +82,22 @@ private struct DeleteConfirmView: View {
                 .font(.lc(18))
                 .foregroundStyle(request.anyPermanent ? Color.red : Color.secondary)
             HStack {
-                // His ask: "it needs a check box to never ask again". Not offered for a
-                // permanent (network) delete — that one always asks.
-                if !request.anyPermanent {
-                    Toggle("Don’t ask again", isOn: $dontAskAgain)
-                        .toggleStyle(.checkbox)
-                        .help("Undo it in Library Commander › Accessibility… › Reset All “Don’t Ask Again”.")
-                }
+                // His asks: "it needs a check box to never ask again", and "the network drive
+                // also gets the dont ask again checkmark" — a separate setting for that one.
+                Toggle(request.anyPermanent ? "Don’t ask again for network drives" : "Don’t ask again",
+                       isOn: $dontAskAgain)
+                    .toggleStyle(.checkbox)
+                    .help("Undo it in Library Commander › Accessibility… › Reset All “Don’t Ask Again”.")
                 Spacer()
                 Button("Cancel") { controller.answerDelete(request, go: false) }
                     .keyboardShortcut(.cancelAction)
                     .controlSize(.large)
                 // No Return shortcut on purpose — a delete takes a click, never a stray key.
                 Button(request.anyPermanent ? "Delete Permanently" : "Move to Trash", role: .destructive) {
-                    if dontAskAgain { AccessibilitySettings.shared.skipDeleteConfirm = true }
+                    if dontAskAgain {
+                        if request.anyPermanent { AccessibilitySettings.shared.skipPermanentDeleteConfirm = true }
+                        else { AccessibilitySettings.shared.skipDeleteConfirm = true }
+                    }
                     controller.answerDelete(request, go: true)
                 }
                 .controlSize(.large)
