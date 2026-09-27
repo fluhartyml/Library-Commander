@@ -25,13 +25,13 @@ struct TextFileEditor: View {
             // Header
             HStack {
                 Text(fileName)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
 
                 Spacer()
 
                 if hasChanges {
                     Text("• Edited")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.orange)
                 }
 
@@ -57,7 +57,7 @@ struct TextFileEditor: View {
                 Spacer()
             } else {
                 TextEditor(text: $fileContents)
-                    .font(.system(size: 18, design: .monospaced))
+                    .font(.lc(18, design: .monospaced))
                     .padding(8)
                     .onChange(of: fileContents) {
                         hasChanges = true
@@ -69,7 +69,7 @@ struct TextFileEditor: View {
             // Footer with save button
             HStack {
                 Text(filePath)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)

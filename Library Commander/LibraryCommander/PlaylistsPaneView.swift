@@ -19,7 +19,7 @@ struct PlaylistsPaneView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("\(library.playlists.count) playlists — \(selection.count) selected")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                 Spacer()
                 Button("Refresh") {
                     Task { await library.refreshPlaylists() }
@@ -34,7 +34,7 @@ struct PlaylistsPaneView: View {
             .padding()
 
             Text("First \(Self.visibleCharCount) characters shown bold — that's the practical display limit before most music apps truncate. Double-click a name to rename.")
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
@@ -83,7 +83,7 @@ struct PlaylistsPaneView: View {
                             commitRename(from: playlist.name)
                         })
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 18))
+                        .font(.lc(18))
 
                         Button("Save") { commitRename(from: playlist.name) }
                             .keyboardShortcut(.defaultAction)
@@ -115,20 +115,20 @@ struct PlaylistsPaneView: View {
         let overflow = max(0, count - Self.visibleCharCount)
         HStack(spacing: 6) {
             Text("\(count) chars")
-                .font(.system(size: 18, design: .monospaced))
+                .font(.lc(18, design: .monospaced))
                 .foregroundStyle(count > Self.visibleCharCount ? .red : .secondary)
             Text("•")
                 .foregroundStyle(.secondary)
             Text("truncates at \(Self.visibleCharCount)")
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .foregroundStyle(.secondary)
             if overflow > 0 {
                 Text("(\(overflow) over)")
-                    .font(.system(size: 18, design: .monospaced))
+                    .font(.lc(18, design: .monospaced))
                     .foregroundStyle(.red)
             } else if count == Self.visibleCharCount {
                 Text("(at limit)")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundStyle(.orange)
             }
         }
@@ -140,11 +140,11 @@ struct PlaylistsPaneView: View {
         let overflow = name.count > Self.visibleCharCount ? String(name.dropFirst(Self.visibleCharCount)) : ""
         HStack(spacing: 0) {
             Text(visible)
-                .font(.system(size: 18, weight: .bold))
+                .font(.lc(18, weight: .bold))
                 .foregroundStyle(.primary)
             if !overflow.isEmpty {
                 Text(overflow)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundStyle(.secondary)
             }
         }

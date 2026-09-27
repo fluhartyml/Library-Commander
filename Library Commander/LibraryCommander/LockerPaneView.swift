@@ -12,7 +12,7 @@ struct LockerPaneView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("Playlist Locker — \(locker.lockerFiles.count) backups")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                 Spacer()
                 Button("Backup All Playlists") {
                     Task { try? await locker.backupAllPlaylists() }
@@ -26,7 +26,7 @@ struct LockerPaneView: View {
                 VStack(spacing: 8) {
                     ProgressView()
                     Text(locker.backupProgress)
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundStyle(.secondary)
                 }
                 .padding()
@@ -46,9 +46,9 @@ struct LockerPaneView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(file.name)
-                                            .font(.system(size: 18))
+                                            .font(.lc(18))
                                         Text("\(file.createdAt, format: .dateTime) — \(file.formattedSize)")
-                                            .font(.system(size: 18))
+                                            .font(.lc(18))
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()

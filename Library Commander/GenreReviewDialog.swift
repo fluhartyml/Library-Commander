@@ -27,17 +27,17 @@ struct GenreReviewDialog: View {
             // Header
             HStack {
                 Image(systemName: "pencil.circle.fill")
-                    .font(.title)
+                    .font(.lc(22))
                     .foregroundColor(.purple)
                 Text("Select Genre")
-                    .font(.system(size: 22))
+                    .font(.lc(22))
                     .fontWeight(.semibold)
 
                 Spacer()
 
                 // Progress indicator
                 Text("\(currentIndex + 1) of \(queue.items.count)")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -53,9 +53,9 @@ struct GenreReviewDialog: View {
                     // Song details
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title ?? "Unknown Title")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.lc(18, weight: .semibold))
                         Text(item.artist ?? "Unknown Artist")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                     }
 
@@ -64,10 +64,10 @@ struct GenreReviewDialog: View {
                     // File name
                     VStack(alignment: .leading, spacing: 4) {
                         Text("File:")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                         Text(item.fileName)
-                            .font(.system(size: 18, design: .monospaced))
+                            .font(.lc(18, design: .monospaced))
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
@@ -82,7 +82,7 @@ struct GenreReviewDialog: View {
                     if item.allGenres.isEmpty {
                         // No genres available - allow manual entry
                         Text("No genres detected")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
 
                         TextField("Enter genre manually", text: Binding(
@@ -93,7 +93,7 @@ struct GenreReviewDialog: View {
                     } else {
                         // Multiple genres - let user pick
                         Text("Select a genre (\(item.allGenres.count) available):")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
 
                         ScrollView {
@@ -166,11 +166,11 @@ struct GenreReviewDialog: View {
                 // Empty state
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
+                        .font(.lc(48))
                         .foregroundColor(.green)
 
                     Text("All genres reviewed!")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.lc(18, weight: .semibold))
 
                     Button("Done") {
                         isPresented = false

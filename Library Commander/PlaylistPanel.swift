@@ -22,12 +22,12 @@ struct PlaylistPanel: View {
             // Header
             HStack {
                 Image(systemName: "music.note.list")
-                    .font(.system(size: 20))
+                    .font(.lc(20))
                 Text("Playlist")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
                 Spacer()
                 Text("\(playlistManager.items.count) items")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
             }
             .padding(8)
@@ -40,12 +40,12 @@ struct PlaylistPanel: View {
                 VStack {
                     Spacer()
                     Image(systemName: "music.note")
-                        .font(.system(size: 48))
+                        .font(.lc(48))
                         .foregroundColor(.secondary.opacity(0.5))
                     Text("No items in playlist")
                         .foregroundColor(.secondary)
                     Text("Right-click media files and select \"Add to Playlist\"")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -61,7 +61,7 @@ struct PlaylistPanel: View {
                                 Text(item.name)
                                     .lineLimit(1)
                                 Text(item.path)
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.middle)

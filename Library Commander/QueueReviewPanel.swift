@@ -17,16 +17,16 @@ struct QueueReviewPanel: View {
             // Header
             HStack {
                 Image(systemName: "list.bullet.clipboard")
-                    .font(.system(size: 22))
+                    .font(.lc(22))
                     .foregroundColor(.orange)
                 Text("Shazam Queue")
-                    .font(.system(size: 22))
+                    .font(.lc(22))
                     .fontWeight(.semibold)
 
                 Spacer()
 
                 Text("\(queue.count()) files")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
             }
             .padding()
@@ -38,12 +38,12 @@ struct QueueReviewPanel: View {
                 VStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
+                        .font(.lc(48))
                         .foregroundColor(.green)
                     Text("Queue is empty")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.lc(18, weight: .semibold))
                     Text("All files have been processed!")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -104,26 +104,26 @@ struct QueueItemRow: View {
         HStack(spacing: 12) {
             // File icon
             Image(systemName: "music.note")
-                .font(.system(size: 22))
+                .font(.lc(22))
                 .foregroundColor(.orange)
                 .frame(width: 32)
 
             // File info
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.fileName)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .lineLimit(1)
 
                 if let error = item.lastError {
                     Text(error)
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.red)
                         .lineLimit(1)
                 }
 
                 if item.attemptCount > 1 {
                     Text("Attempts: \(item.attemptCount)")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 }
             }

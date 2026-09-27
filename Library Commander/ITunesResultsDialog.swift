@@ -16,12 +16,12 @@ struct ITunesResultsDialog: View {
         VStack(spacing: 20) {
             // Success icon
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
+                .font(.lc(60))
                 .foregroundColor(.green)
 
             // Title
             Text("iTunes Lookup Complete")
-                .font(.system(size: 22))
+                .font(.lc(22))
                 .fontWeight(.semibold)
 
             Divider()
@@ -55,7 +55,7 @@ struct ITunesResultsDialog: View {
             if matchedCount > 0 {
                 VStack(spacing: 4) {
                     Text("Metadata updated with:")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 12) {
@@ -64,7 +64,7 @@ struct ITunesResultsDialog: View {
                         Label("Year", systemImage: "calendar")
                         Label("Artwork", systemImage: "photo")
                     }
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                 }
             }

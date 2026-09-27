@@ -97,11 +97,11 @@ struct InPaneMediaPlayer: View {
                         Image(systemName: isVideo ? "film" : "music.note")
                             .foregroundStyle(.secondary)
                         Text(ShazamScannedDatabase.shared.getMetadata(for: media.path)?.title ?? media.name)
-                            .font(.system(size: 18)).lineLimit(1).truncationMode(.middle)
+                            .font(.lc(18)).lineLimit(1).truncationMode(.middle)
                         Spacer()
                         if !isWebloc {
                             Text("\(formatTime(currentTime)) / \(formatTime(duration))")
-                                .font(.system(size: 18)).foregroundStyle(.secondary).monospacedDigit()
+                                .font(.lc(18)).foregroundStyle(.secondary).monospacedDigit()
                         }
                         Button { maximize() } label: {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
@@ -166,7 +166,7 @@ struct InPaneMediaPlayer: View {
                         } else {
                             // Fallback waveform icon
                             Image(systemName: "waveform")
-                                .font(.system(size: 40))
+                                .font(.lc(40))
                                 .foregroundColor(.blue)
                         }
 
@@ -174,9 +174,9 @@ struct InPaneMediaPlayer: View {
                         if showVisualizer && isCurrentlyPlaying {
                             HStack(spacing: 4) {
                                 Image(systemName: selectedVisualizer.icon)
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                                 Text(selectedVisualizer.rawValue)
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                             }
                             .foregroundColor(.secondary)
                         }
@@ -186,19 +186,19 @@ struct InPaneMediaPlayer: View {
                             VStack(spacing: 2) {
                                 if let title = storedMeta.title, !title.isEmpty {
                                     Text(title)
-                                        .font(.system(size: 18))
+                                        .font(.lc(18))
                                         .fontWeight(.medium)
                                         .lineLimit(1)
                                 }
                                 if let artist = storedMeta.artist, !artist.isEmpty {
                                     Text(artist)
-                                        .font(.system(size: 18))
+                                        .font(.lc(18))
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
                                 }
                                 if let album = storedMeta.album, !album.isEmpty {
                                     Text(album)
-                                        .font(.system(size: 18))
+                                        .font(.lc(18))
                                         .foregroundColor(.secondary.opacity(0.7))
                                         .lineLimit(1)
                                 }
@@ -206,12 +206,12 @@ struct InPaneMediaPlayer: View {
                         } else {
                             // Fallback to filename
                             Text(media.name)
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                                 .lineLimit(1)
                         }
 
                         Text("\(formatTime(currentTime)) / \(formatTime(duration))")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                     }
@@ -232,13 +232,13 @@ struct InPaneMediaPlayer: View {
                             }
                         }) {
                             Image(systemName: "backward.end.fill")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.borderless)
 
                         Button(action: togglePlayPause) {
                             Image(systemName: isCurrentlyPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 20))
+                                .font(.lc(20))
                         }
                         .buttonStyle(.borderless)
 
@@ -253,7 +253,7 @@ struct InPaneMediaPlayer: View {
                             }
                         }) {
                             Image(systemName: "forward.end.fill")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.borderless)
                     }
@@ -263,7 +263,7 @@ struct InPaneMediaPlayer: View {
                     if !isMinimized.wrappedValue {
                     HStack(spacing: 8) {
                         Text(formatTime(currentTime))
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                             .frame(width: 40, alignment: .trailing)
@@ -278,7 +278,7 @@ struct InPaneMediaPlayer: View {
                             .controlSize(.regular)
 
                         Text(formatTime(duration))
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                             .frame(width: 40, alignment: .leading)
@@ -291,32 +291,32 @@ struct InPaneMediaPlayer: View {
                     HStack(spacing: 12) {
                         Button(action: playPrevious) {
                             Image(systemName: "backward.end.fill")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.borderless)
                         .disabled(currentTrackIndex == 0)
 
                         Button(action: seekBackward) {
                             Image(systemName: "gobackward.15")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.borderless)
 
                         Button(action: togglePlayPause) {
                             Image(systemName: isCurrentlyPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 20))
+                                .font(.lc(20))
                         }
                         .buttonStyle(.borderless)
 
                         Button(action: seekForward) {
                             Image(systemName: "goforward.15")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.borderless)
 
                         Button(action: playNext) {
                             Image(systemName: "forward.end.fill")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.borderless)
                         .disabled(currentTrackIndex == mediaFiles.count - 1)
@@ -346,21 +346,21 @@ struct InPaneMediaPlayer: View {
                 HStack(spacing: 12) {
                     Toggle(isOn: $autoPlayNext) {
                         Text("▶ Next")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                     .toggleStyle(.switch)
                     .controlSize(.regular)
 
                     Toggle(isOn: $autoPlayOpposite) {
                         Text("⇄ Switch")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                     .toggleStyle(.switch)
                     .controlSize(.regular)
 
                     Toggle(isOn: $crossfadeEnabled) {
                         Text("✕ Fade")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                     .toggleStyle(.switch)
                     .controlSize(.regular)
@@ -373,12 +373,12 @@ struct InPaneMediaPlayer: View {
                 Group {
                     if let next = nextMedia {
                         Text("Next: \(next.name)")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     } else {
                         Text(" ")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                 }
                 .padding(.horizontal, 8)
@@ -931,7 +931,7 @@ struct AppleMusicPlayerView: View {
                         .frame(width: 250, height: 250)
                         .overlay(
                             Image(systemName: "music.note")
-                                .font(.system(size: 80))
+                                .font(.lc(80))
                                 .foregroundColor(.secondary)
                         )
                 }
@@ -941,7 +941,7 @@ struct AppleMusicPlayerView: View {
                     .frame(width: 250, height: 250)
                     .overlay(
                         Image(systemName: "music.note")
-                            .font(.system(size: 80))
+                            .font(.lc(80))
                             .foregroundColor(.secondary)
                     )
             }
@@ -950,16 +950,16 @@ struct AppleMusicPlayerView: View {
             if let song = currentSong {
                 VStack(spacing: 4) {
                     Text(song.title)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.lc(18, weight: .semibold))
                         .lineLimit(1)
                     Text(song.artistName)
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
             } else {
                 Text("Apple Music")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
                     .foregroundColor(.secondary)
             }
         }
@@ -1031,7 +1031,7 @@ struct MetadataFooterView: View {
                     ProgressView()
                         .scaleEffect(0.6)
                     Text("Reading metadata...")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 }
             } else {
@@ -1039,25 +1039,25 @@ struct MetadataFooterView: View {
                 HStack(spacing: 12) {
                     if let artist = storedMeta?.artist ?? embeddedMeta?.artist, !artist.isEmpty {
                         Label(artist, systemImage: "person.fill")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                     if let title = storedMeta?.title ?? embeddedMeta?.title, !title.isEmpty {
                         Label(title, systemImage: "music.note")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                     if let album = storedMeta?.album ?? embeddedMeta?.album, !album.isEmpty {
                         Label(album, systemImage: "opticaldisc")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                     }
                     if let genre = storedMeta?.genre ?? embeddedMeta?.genre, !genre.isEmpty {
                         Label(genre, systemImage: "guitars")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                     }
                     if let year = storedMeta?.year ?? embeddedMeta?.year, !year.isEmpty {
                         Text(year)
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -1068,13 +1068,13 @@ struct MetadataFooterView: View {
                     let appleMusicID = storedMeta?.appleMusicID ?? embeddedMeta?.appleMusicID
                     HStack(spacing: 4) {
                         Image(systemName: "apple.logo")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                         if let id = appleMusicID, !id.isEmpty {
                             Text(id)
-                                .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                                .font(.lc(18, weight: .semibold, design: .monospaced))
                         } else {
                             Text("NO ID")
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                .font(.lc(18, weight: .bold, design: .monospaced))
                         }
                     }
                     .foregroundColor(appleMusicID != nil ? .pink : .red)
@@ -1091,13 +1091,13 @@ struct MetadataFooterView: View {
                     let shazamID = storedMeta?.shazamID
                     HStack(spacing: 4) {
                         Image(systemName: "shazam.logo")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                         if let id = shazamID, !id.isEmpty {
                             Text(String(id.prefix(10)))
-                                .font(.system(size: 18, weight: .medium, design: .monospaced))
+                                .font(.lc(18, weight: .medium, design: .monospaced))
                         } else {
                             Text("NO ID")
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                .font(.lc(18, weight: .bold, design: .monospaced))
                         }
                     }
                     .foregroundColor(shazamID != nil ? .blue : .orange)
@@ -1115,7 +1115,7 @@ struct MetadataFooterView: View {
                     // Source indicator
                     if storedMeta != nil {
                         Text("DB")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.lc(18, weight: .bold))
                             .foregroundColor(.green)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -1123,7 +1123,7 @@ struct MetadataFooterView: View {
                             .cornerRadius(4)
                     } else if embeddedMeta != nil {
                         Text("ID3")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.lc(18, weight: .bold))
                             .foregroundColor(.purple)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)

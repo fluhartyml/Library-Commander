@@ -156,13 +156,13 @@ struct FullscreenVisualizerContent: View {
                 if !manager.trackName.isEmpty {
                     VStack(spacing: 4) {
                         Text(manager.trackName)
-                            .font(.system(size: 32, weight: .semibold))
+                            .font(.lc(32, weight: .semibold))
                             .foregroundColor(.white)
                             .shadow(radius: 10)
 
                         if !manager.artistName.isEmpty {
                             Text(manager.artistName)
-                                .font(.system(size: 24, weight: .regular))
+                                .font(.lc(24, weight: .regular))
                                 .foregroundColor(.white.opacity(0.8))
                                 .shadow(radius: 8)
                         }
@@ -176,7 +176,7 @@ struct FullscreenVisualizerContent: View {
                 HStack {
                     Spacer()
                     Text("Press ESC to close • Click to change visualizer")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.white.opacity(0.5))
                         .padding()
                 }
@@ -218,7 +218,7 @@ struct FullscreenVisualizerButton: View {
                 Divider()
 
                 Text("Open on Screen:")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
 
                 ForEach(Array(manager.availableScreens.enumerated()), id: \.offset) { index, screen in
                     Button(action: {

@@ -93,7 +93,8 @@ struct FileBrowserPanel: View {
     @FocusState private var isRenameFocused: Bool
 
     // Nuclear mode state
-    @State private var nuclearModeEnabled = false
+    /// Nuclear mode lives in Accessibility now — one setting for both panes.
+    private var nuclearModeEnabled: Bool { AccessibilitySettings.shared.nuclearMode }
     @State private var showNuclearToast = false
     @State private var nuclearToastMessage = ""
     @State private var lastMovedFile: (source: String, destination: String, fileName: String)? = nil
@@ -140,7 +141,7 @@ struct FileBrowserPanel: View {
                     HStack(spacing: 6) {
                         Image(systemName: (volume?.path ?? "/") == "/" ? "internaldrive.fill" : "externaldrive.fill")
                         Text(volume?.name ?? "Drive")
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.lc(22, weight: .bold))
                             .lineLimit(1)
                         Image(systemName: "chevron.down")
                     }
@@ -187,7 +188,7 @@ struct FileBrowserPanel: View {
 
                         if playlistCount > 0 {
                             Text("\(playlistCount)")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.lc(18, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(2)
                                 .background(Circle().fill(Color.red))
@@ -300,60 +301,14 @@ struct FileBrowserPanel: View {
                 TickerText(text: fileSystem.virtualListing.map { "\($0.title) — \($0.paths.count) items (not a folder)" }
                                  ?? fileSystem.currentPath)
                     // Was .caption, then .body — both "too small" (2026-09-27).
-                    .font(.system(size: 20, design: .monospaced))
+                    .font(.lc(20, design: .monospaced))
                     .foregroundColor(fileSystem.virtualListing == nil ? .secondary : .orange)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
 
                 Spacer()
 
-                // Nuclear mode compass rose
-                ZStack {
-                    // Center - Nuclear glyph (clickable toggle)
-                    Button(action: {
-                        nuclearModeEnabled.toggle()
-                        nuclearToastMessage = nuclearModeEnabled ? "Nuclear Mode ON" : "Nuclear Mode OFF"
-                        showNuclearToast = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            showNuclearToast = false
-                        }
-                    }) {
-                        Text("☢️")
-                            .font(.system(size: 20))
-                            .opacity(nuclearModeEnabled ? 1.0 : 0.3)
-                    }
-                    .buttonStyle(.borderless)
-                    // ← is UNDO, not copy. The old text said copy and the code has
-                    // always called undoLastMove; a tooltip that names the wrong key
-                    // is worse than none on a mode that moves files.
-                    .help(nuclearModeEnabled ? (isRightPane ? "Nuclear Mode: ON (← move left + play next, ↓ next, ↑ prev, → undo last move)" : "Nuclear Mode: ON (→ move right + play next, ↓ next, ↑ prev, ← undo last move)") : "Nuclear Mode: OFF (tap to enable)")
-
-                    // North - Up arrow (previous)
-                    Text("↑")
-                        .font(.system(size: 18))
-                        .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
-                        .offset(x: 0, y: -15)
-
-                    // South - Down arrow (next)
-                    Text("↓")
-                        .font(.system(size: 18))
-                        .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
-                        .offset(x: 0, y: 15)
-
-                    // East - Right arrow (move)
-                    Text("→")
-                        .font(.system(size: 18))
-                        .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
-                        .offset(x: 15, y: 0)
-
-                    // West - Left arrow (copy)
-                    Text("←")
-                        .font(.system(size: 18))
-                        .foregroundColor(nuclearModeEnabled ? .yellow : .clear)
-                        .offset(x: -15, y: 0)
-                }
-                .frame(width: 40, height: 40)
-                .padding(.trailing, 8)
+                // Nuclear mode's ☢️ button moved to Library Commander › Accessibility… (his idea, 2026-09-27).
 
                 // Up one folder sits immediately right of Nuclear Mode.
                 // His placement, 2026-09-11. It was previously in the middle of
@@ -367,7 +322,7 @@ struct FileBrowserPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.circle.fill")
                             Text("..")
-                                .font(.system(size: 18, design: .monospaced))
+                                .font(.lc(18, design: .monospaced))
                         }
                     }
                     .buttonStyle(.bordered)
@@ -437,7 +392,7 @@ struct FileBrowserPanel: View {
                                             onItemDoubleClick(item)
                                         }) {
                                             Image(systemName: "play.circle.fill")
-                                                .font(.system(size: 18))
+                                                .font(.lc(18))
                                                 .foregroundColor(.accentColor)
                                         }
                                         .buttonStyle(.borderless)
@@ -451,7 +406,7 @@ struct FileBrowserPanel: View {
                                             showMediaPlayer = false
                                         }) {
                                             Image(systemName: "arrow.right.circle.fill")
-                                                .font(.system(size: 18))
+                                                .font(.lc(18))
                                                 .foregroundColor(.blue)
                                         }
                                         .buttonStyle(.borderless)
@@ -478,7 +433,7 @@ struct FileBrowserPanel: View {
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(item.name).lineLimit(1)
                                             Text(why)
-                                                .font(.system(size: 18))
+                                                .font(.lc(18))
                                                 .foregroundColor(.orange)
                                                 .lineLimit(2)
                                                 .fixedSize(horizontal: false, vertical: true)
@@ -499,7 +454,7 @@ struct FileBrowserPanel: View {
                                        !musicSettings.musicLibraryPath.isEmpty,
                                        URL(fileURLWithPath: item.path).standardizedFileURL.path == musicSettings.musicLibraryPath {
                                         Image(systemName: "checkmark.seal.fill")
-                                            .font(.system(size: 18))
+                                            .font(.lc(18))
                                             .foregroundColor(.green)
                                             .help("Media Library")
                                     }
@@ -882,7 +837,7 @@ struct FileBrowserPanel: View {
                     Text(selectedFile.displayDate)
                         .foregroundColor(.secondary)
                 }
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .background(Color.secondary.opacity(0.08))
@@ -909,12 +864,12 @@ struct FileBrowserPanel: View {
                 HStack(spacing: 4) {
                     // File count
                     Text("\(displayedFiles.count) items")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                         .padding(.trailing, 8)
 
                     Text("›")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
 
                     ForEach(Array(fileSystem.breadcrumbs.enumerated()), id: \.element.id) { index, breadcrumb in
@@ -924,14 +879,14 @@ struct FileBrowserPanel: View {
                             showMediaPlayer = false
                         }) {
                             Text(breadcrumb.name)
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(.plain)
 
                         if index < fileSystem.breadcrumbs.count - 1 {
                             Text("›")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -1116,7 +1071,7 @@ struct FileBrowserPanel: View {
         .overlay(alignment: .top) {
             if showNuclearToast {
                 Text(nuclearToastMessage)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
                     .foregroundColor(.white)
                     .padding()
                     .background(
@@ -1420,7 +1375,7 @@ struct FileBrowserPanel: View {
     /// The drive list, drawn by the app at 18 pt and up.
     private var drivePicker: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Drives").font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
+            Text("Drives").font(.lc(18, weight: .semibold)).foregroundStyle(.secondary)
             ForEach(fileSystem.mountedVolumes) { volume in
                 pickerRow(icon: volume.path == "/" ? "internaldrive.fill" : "externaldrive.fill",
                           title: volume.name,
@@ -1431,7 +1386,7 @@ struct FileBrowserPanel: View {
                 }
             }
             Divider().padding(.vertical, 4)
-            Text("Servers").font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
+            Text("Servers").font(.lc(18, weight: .semibold)).foregroundStyle(.secondary)
             ForEach(serverManager.servers) { server in
                 pickerRow(icon: "server.rack", title: server.name,
                           current: ServerMountService.shared.isServerMounted(server)) {
@@ -1442,7 +1397,7 @@ struct FileBrowserPanel: View {
                 showAddServerSheet = true
             }
         }
-        .font(.system(size: 20))
+        .font(.lc(20))
         .padding(14)
         .frame(minWidth: 280, alignment: .leading)
     }

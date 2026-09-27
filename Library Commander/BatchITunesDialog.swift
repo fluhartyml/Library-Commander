@@ -25,10 +25,10 @@ struct BatchITunesDialog: View {
             // Title with spinner
             HStack {
                 Image(systemName: "music.note.list")
-                    .font(.title)
+                    .font(.lc(22))
                     .foregroundColor(.purple)
                 Text("iTunes Metadata Lookup")
-                    .font(.system(size: 22))
+                    .font(.lc(22))
                     .fontWeight(.semibold)
 
                 if service.isProcessing {
@@ -39,7 +39,7 @@ struct BatchITunesDialog: View {
             }
 
             Text(folderName)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.lc(18, weight: .semibold))
                 .foregroundColor(.secondary)
 
             Divider()
@@ -51,7 +51,7 @@ struct BatchITunesDialog: View {
                         .progressViewStyle(.linear)
 
                     Text("\(service.processedFiles) / \(service.totalFiles)")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 }
 
@@ -60,11 +60,11 @@ struct BatchITunesDialog: View {
                 // Currently processing
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Currently looking up:")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
 
                     Text(service.currentFile)
-                        .font(.system(size: 18, design: .monospaced))
+                        .font(.lc(18, design: .monospaced))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }

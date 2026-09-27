@@ -28,15 +28,15 @@ struct StatsPaneView: View {
                     } label: {
                         HStack(spacing: 12) {
                             Text("Library Health")
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.lc(24, weight: .bold))
                             Image(systemName: healthIcon)
-                                .font(.system(size: 28))
+                                .font(.lc(28))
                                 .foregroundStyle(healthColor)
                             Text(healthLabel)
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                                 .foregroundStyle(.secondary)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal, 8)
@@ -72,7 +72,7 @@ struct StatsPaneView: View {
 
                 if health == .sad || health == .bored {
                     Text(suggestedAction)
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundStyle(.secondary)
                 }
 
@@ -108,10 +108,10 @@ struct StatsPaneView: View {
                 if !library.statusMessage.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Last message")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.lc(18, weight: .semibold))
                             .foregroundStyle(.secondary)
                         Text(library.statusMessage)
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundStyle(.red)
                             .textSelection(.enabled)
                     }
@@ -185,7 +185,7 @@ struct StatsPaneView: View {
     private func card<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.lc(18, weight: .semibold))
             content()
         }
         .padding()
@@ -195,10 +195,10 @@ struct StatsPaneView: View {
     private func row(_ label: String, _ value: Int) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 18))
+                .font(.lc(18))
             Spacer()
             Text(value.formatted())
-                .font(.system(size: 18, design: .monospaced))
+                .font(.lc(18, design: .monospaced))
         }
     }
 }

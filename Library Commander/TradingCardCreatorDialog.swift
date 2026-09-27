@@ -23,7 +23,7 @@ struct TradingCardCreatorDialog: View {
         VStack(spacing: 20) {
             // Header
             Text("Create Apple Music Link")
-                .font(.system(size: 22))
+                .font(.lc(22))
                 .fontWeight(.bold)
 
             Divider()
@@ -31,36 +31,36 @@ struct TradingCardCreatorDialog: View {
             // URL Input
             VStack(alignment: .leading, spacing: 8) {
                 Text("Apple Music URL:")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .fontWeight(.semibold)
 
                 TextField("https://music.apple.com/...", text: $appleMusicURL)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 18, design: .monospaced))
+                    .font(.lc(18, design: .monospaced))
 
                 Text("Paste link from Apple Music (song, video, album, or playlist)")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
             }
 
             // Name Input
             VStack(alignment: .leading, spacing: 8) {
                 Text("Link Name:")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .fontWeight(.semibold)
 
                 TextField("Bohemian Rhapsody", text: $cardName)
                     .textFieldStyle(.roundedBorder)
 
                 Text("Name for the link file (without extension)")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
             }
 
             // Type Toggle
             HStack {
                 Text("Type:")
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .fontWeight(.semibold)
 
                 Picker("", selection: $isVideo) {

@@ -22,16 +22,16 @@ struct ImagePreview: View {
             // Header
             HStack {
                 Image(systemName: "photo")
-                    .font(.system(size: 20))
+                    .font(.lc(20))
                 Text(fileName)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer()
 
                 if let img = image {
                     Text("\(Int(img.size.width)) × \(Int(img.size.height))")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 }
 
@@ -52,7 +52,7 @@ struct ImagePreview: View {
             } else if let error = errorMessage {
                 VStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 50))
+                        .font(.lc(50))
                         .foregroundColor(.orange)
                     Text(error)
                         .foregroundColor(.red)
@@ -74,7 +74,7 @@ struct ImagePreview: View {
             // Footer with zoom controls
             HStack {
                 Text(filePath)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -89,7 +89,7 @@ struct ImagePreview: View {
                         .buttonStyle(.borderless)
 
                         Text("\(Int(scale * 100))%")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .frame(width: 50)
 
                         Button(action: { scale = min(5.0, scale + 0.25) }) {
@@ -99,7 +99,7 @@ struct ImagePreview: View {
 
                         Button(action: { scale = 1.0 }) {
                             Text("100%")
-                                .font(.system(size: 18))
+                                .font(.lc(18))
                         }
                         .buttonStyle(.bordered)
                     }

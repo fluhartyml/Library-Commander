@@ -27,9 +27,9 @@ struct AudioPlayer: View {
             // Header
             HStack {
                 Image(systemName: "music.note")
-                    .font(.system(size: 22))
+                    .font(.lc(22))
                 Text(fileName)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer()
@@ -46,13 +46,13 @@ struct AudioPlayer: View {
 
             // Waveform icon
             Image(systemName: "waveform")
-                .font(.system(size: 80))
+                .font(.lc(80))
                 .foregroundColor(.blue)
 
             // Time display
             HStack {
                 Text(formatTime(currentTime))
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .leading)
 
@@ -64,7 +64,7 @@ struct AudioPlayer: View {
                 .disabled(duration == 0)
 
                 Text(formatTime(duration))
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                     .frame(width: 60, alignment: .trailing)
             }
@@ -74,19 +74,19 @@ struct AudioPlayer: View {
             HStack(spacing: 30) {
                 Button(action: seekBackward) {
                     Image(systemName: "gobackward.15")
-                        .font(.title)
+                        .font(.lc(22))
                 }
                 .buttonStyle(.borderless)
 
                 Button(action: togglePlayPause) {
                     Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 60))
+                        .font(.lc(60))
                 }
                 .buttonStyle(.borderless)
 
                 Button(action: seekForward) {
                     Image(systemName: "goforward.15")
-                        .font(.title)
+                        .font(.lc(22))
                 }
                 .buttonStyle(.borderless)
             }

@@ -96,12 +96,12 @@ struct AlbumArtVisualizer: View {
                     // Fallback when no artwork
                     VStack(spacing: 16) {
                         Image(systemName: "music.note")
-                            .font(.system(size: 80))
+                            .font(.lc(80))
                             .foregroundColor(.gray)
                             .scaleEffect(1.0 + CGFloat(amplitude) * 0.2)
                             .animation(.easeOut(duration: 0.1), value: amplitude)
                         Text("No Album Art")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.gray)
                     }
                     .id("no-artwork")
@@ -147,10 +147,10 @@ struct AlbumArtStaticVisualizer: View {
                     // Fallback when no artwork
                     VStack(spacing: 16) {
                         Image(systemName: "music.note")
-                            .font(.system(size: 80))
+                            .font(.lc(80))
                             .foregroundColor(.gray)
                         Text("No Album Art")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.gray)
                     }
                 }

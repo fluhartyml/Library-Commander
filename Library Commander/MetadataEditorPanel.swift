@@ -65,7 +65,7 @@ struct MetadataEditorPanel: View {
 
                     if let error = detectionError {
                         Text(error)
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.red)
                     }
                 }
@@ -78,7 +78,7 @@ struct MetadataEditorPanel: View {
                 // Filename editor at top
                 VStack(spacing: 8) {
                     Text("File Name")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -135,13 +135,13 @@ struct MetadataEditorPanel: View {
                 VStack {
                     Spacer()
                     Image(systemName: "info.circle")
-                        .font(.system(size: 48))
+                        .font(.lc(48))
                         .foregroundColor(.secondary)
                     Text("Select a media file")
                         .foregroundColor(.secondary)
                         .padding()
                     Text("in the opposite pane")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -501,7 +501,7 @@ struct MetadataFieldSimple: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .foregroundColor(.secondary)
             TextField("", text: $text)
                 .textFieldStyle(.roundedBorder)

@@ -21,10 +21,10 @@ struct BatchShazamDialog: View {
             // Title with spinner
             HStack {
                 Image(systemName: "shazam.logo.fill")
-                    .font(.title)
+                    .font(.lc(22))
                     .foregroundColor(.blue)
                 Text("Shazaming Folder")
-                    .font(.system(size: 22))
+                    .font(.lc(22))
                     .fontWeight(.semibold)
 
                 if service.isProcessing {
@@ -35,7 +35,7 @@ struct BatchShazamDialog: View {
             }
 
             Text(folderName)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.lc(18, weight: .semibold))
                 .foregroundColor(.secondary)
 
             Divider()
@@ -47,7 +47,7 @@ struct BatchShazamDialog: View {
                         .progressViewStyle(.linear)
 
                     Text("\(service.processedFiles) / \(service.totalFiles)")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 }
 
@@ -56,11 +56,11 @@ struct BatchShazamDialog: View {
                 // Currently processing
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Currently detecting:")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
 
                     Text(service.currentFile)
-                        .font(.system(size: 18, design: .monospaced))
+                        .font(.lc(18, design: .monospaced))
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -145,20 +145,20 @@ struct StatView: View {
         VStack(spacing: 4) {
             Image(systemName: icon)
                 .foregroundColor(color)
-                .font(.system(size: 22))
+                .font(.lc(22))
 
             if suffix.isEmpty {
                 Text("\(value)")
-                    .font(.system(size: 20))
+                    .font(.lc(20))
                     .fontWeight(.semibold)
             } else {
                 Text("\(value) \(suffix)")
-                    .font(.system(size: 20))
+                    .font(.lc(20))
                     .fontWeight(.semibold)
             }
 
             Text(label)
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

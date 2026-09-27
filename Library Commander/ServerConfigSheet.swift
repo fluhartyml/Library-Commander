@@ -26,7 +26,7 @@ struct ServerConfigSheet: View {
             // Header
             HStack {
                 Text("Add Server")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.lc(18, weight: .semibold))
                 Spacer()
                 Button("Cancel") {
                     dismiss()
@@ -44,7 +44,7 @@ struct ServerConfigSheet: View {
                     // Server Details
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Server Details")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.lc(18, weight: .semibold))
 
                         TextField("Name", text: $name, prompt: Text("Home NAS"))
                             .textFieldStyle(.roundedBorder)
@@ -62,7 +62,7 @@ struct ServerConfigSheet: View {
                     // Connection
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Connection")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.lc(18, weight: .semibold))
 
                         TextField("Address", text: $address, prompt: Text("192.168.1.100 or server.local"))
                             .textFieldStyle(.roundedBorder)
@@ -83,7 +83,7 @@ struct ServerConfigSheet: View {
                     // Credentials
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Credentials")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.lc(18, weight: .semibold))
 
                         TextField("Username", text: $username, prompt: Text("admin"))
                             .textFieldStyle(.roundedBorder)

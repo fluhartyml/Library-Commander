@@ -18,12 +18,12 @@ struct ShazamResultsDialog: View {
         VStack(spacing: 20) {
             // Success icon
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
+                .font(.lc(60))
                 .foregroundColor(.green)
 
             // Title
             Text("Shazam Complete")
-                .font(.system(size: 22))
+                .font(.lc(22))
                 .fontWeight(.semibold)
 
             Divider()
@@ -68,11 +68,11 @@ struct ShazamResultsDialog: View {
             if matchedCount > 0 {
                 if genreReviewCount > 0 || queuedCount > 0 {
                     Text("Matched files have been renamed. Review queue to complete remaining files.")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 } else {
                     Text("All files have been successfully processed and renamed.")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                 }
             }

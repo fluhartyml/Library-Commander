@@ -316,7 +316,7 @@ struct ContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: leftPaneIcon)
                         Text("Left: \(leftPaneLabel)")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                 }
                 .buttonStyle(.bordered)
@@ -329,7 +329,7 @@ struct ContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: rightPaneIcon)
                         Text("Right: \(rightPaneLabel)")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                     }
                 }
                 .buttonStyle(.bordered)

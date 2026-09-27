@@ -36,7 +36,7 @@ struct LibraryCommanderView: View {
         NavigationSplitView {
             List(Pane.allCases, id: \.self, selection: $selection) { pane in
                 Label(pane.title, systemImage: pane.systemImage)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .tag(pane)
             }
             .navigationTitle("Library Commander")
@@ -64,7 +64,7 @@ struct LibraryCommanderView: View {
                 .fill(library.isWorking ? Color.blue : Color.green)
                 .frame(width: 8, height: 8)
             Text(footerMessage)
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -106,7 +106,7 @@ struct LibraryCommanderView: View {
         HStack(spacing: 12) {
             Image(systemName: "lock.fill")
             Text("Apple Music access required. Status: \(authorizationText)")
-                .font(.system(size: 18))
+                .font(.lc(18))
             Spacer()
             Button("Request Access") {
                 Task { await library.authorize() }

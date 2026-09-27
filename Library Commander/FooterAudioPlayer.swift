@@ -64,7 +64,7 @@ struct FooterAudioPlayer: View {
                     // Previous track
                     Button(action: playPrevious) {
                         Image(systemName: "backward.end.fill")
-                            .font(.system(size: 20))
+                            .font(.lc(20))
                     }
                     .buttonStyle(.borderless)
                     .disabled(currentTrackIndex == 0)
@@ -72,28 +72,28 @@ struct FooterAudioPlayer: View {
                     // Rewind 15s
                     Button(action: seekBackward) {
                         Image(systemName: "gobackward.15")
-                            .font(.system(size: 20))
+                            .font(.lc(20))
                     }
                     .buttonStyle(.borderless)
 
                     // Play/Pause
                     Button(action: togglePlayPause) {
                         Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 32))
+                            .font(.lc(32))
                     }
                     .buttonStyle(.borderless)
 
                     // Forward 15s
                     Button(action: seekForward) {
                         Image(systemName: "goforward.15")
-                            .font(.system(size: 20))
+                            .font(.lc(20))
                     }
                     .buttonStyle(.borderless)
 
                     // Next track
                     Button(action: playNext) {
                         Image(systemName: "forward.end.fill")
-                            .font(.system(size: 20))
+                            .font(.lc(20))
                     }
                     .buttonStyle(.borderless)
                     .disabled(currentTrackIndex == audioFilesInActivePane.count - 1)
@@ -106,28 +106,28 @@ struct FooterAudioPlayer: View {
                         if activePane == .left {
                             Toggle(isOn: $autoPlayNextLeft) {
                                 Text("▶ Next (Left)")
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                             }
                             .toggleStyle(.switch)
                             .controlSize(.regular)
 
                             Toggle(isOn: $autoPlayOppositeLeft) {
                                 Text("▶ Switch →")
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                             }
                             .toggleStyle(.switch)
                             .controlSize(.regular)
                         } else {
                             Toggle(isOn: $autoPlayNextRight) {
                                 Text("▶ Next (Right)")
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                             }
                             .toggleStyle(.switch)
                             .controlSize(.regular)
 
                             Toggle(isOn: $autoPlayOppositeRight) {
                                 Text("← Switch ▶")
-                                    .font(.system(size: 18))
+                                    .font(.lc(18))
                             }
                             .toggleStyle(.switch)
                             .controlSize(.regular)
@@ -142,16 +142,16 @@ struct FooterAudioPlayer: View {
                     Image(systemName: "music.note")
                         .foregroundColor(.blue)
                     Text("Now Playing:")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                     Text(current.name)
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .lineLimit(1)
 
                     Spacer()
 
                     Text("\(formatTime(currentTime)) / \(formatTime(duration))")
-                        .font(.system(size: 18))
+                        .font(.lc(18))
                         .foregroundColor(.secondary)
                         .monospacedDigit()
                 }
@@ -162,12 +162,12 @@ struct FooterAudioPlayer: View {
                     HStack(spacing: 8) {
                         Image(systemName: "music.note.list")
                             .foregroundColor(.secondary)
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                         Text("Next:")
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                         Text(next.name)
-                            .font(.system(size: 18))
+                            .font(.lc(18))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                         Spacer()

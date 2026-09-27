@@ -29,7 +29,7 @@ struct Library_CommanderApp: App {
         WindowGroup {
             ContentView()
                 // His rule: no text under 18 pt unless he says otherwise. Unstyled text inherits this.
-                .font(.system(size: 18))
+                .font(.lc(18))
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 // The build number rides in the window title so it can be read off
                 // the screen without opening About. His ask, 2026-09-11, and he was
@@ -92,12 +92,13 @@ struct Library_CommanderApp: App {
                     NotificationCenter.default.post(name: .openShazamSettings, object: nil)
                 }
                 .keyboardShortcut(",", modifiers: .command)
+                OpenAccessibilityWindowButton()
             }
         }
 
         Window("Library", id: LibraryWindow.id) {
             LibraryCommanderView()
-                .font(.system(size: 18))   // 18 pt floor — his rule
+                .font(.lc(18))   // 18 pt floor — his rule
                 .environment(libraryService)
                 .environment(lockerService)
                 .task {
@@ -107,6 +108,28 @@ struct Library_CommanderApp: App {
                 }
         }
         .defaultSize(width: 900, height: 720)
+
+        // His idea, 2026-09-27: Nuclear mode + a text-size slider, as accessibility options.
+        Window("Accessibility", id: AccessibilityWindow.id) {
+            AccessibilitySettingsView()
+        }
+        .windowResizability(.contentSize)
+    }
+}
+
+enum AccessibilityWindow {
+    static let id = "accessibility"
+}
+
+/// Library Commander › Accessibility… (⇧⌘,). ⌘, already opens the Shazam settings.
+private struct OpenAccessibilityWindowButton: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Accessibility…") {
+            openWindow(id: AccessibilityWindow.id)
+        }
+        .keyboardShortcut(",", modifiers: [.command, .shift])
     }
 }
 

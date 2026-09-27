@@ -17,10 +17,10 @@ struct CommandButton: View {
         Button(action: action) {
             VStack(spacing: 2) {
                 Text(shortcut)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .foregroundColor(.secondary)
                 Text(label)
-                    .font(.system(size: 18))
+                    .font(.lc(18))
                     .fontWeight(.medium)
             }
             .frame(maxWidth: .infinity)
