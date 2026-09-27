@@ -508,13 +508,20 @@ struct FileBrowserPanel: View {
                                         // that is ALREADY the only selection renames it. His ask:
                                         // "click click renames" (double-click still opens — this
                                         // handler only fires once the double-click window has passed).
-                                        if selectedItems == [item.id], renamingItem == nil,
-                                           let since = selectedSince,
-                                           Date().timeIntervalSince(since) > NSEvent.doubleClickInterval {
+                                        // Build 24 — "the tap tap is too sensitive": the second click
+                                        // must land in a window (slower than a double-click, within
+                                        // ~1.5 s after it), and only in the pane that was already active.
+                                        let gap = selectedSince.map { Date().timeIntervalSince($0) } ?? .infinity
+                                        if selectedItems == [item.id], renamingItem == nil, isFocused,
+                                           gap > NSEvent.doubleClickInterval,
+                                           gap < NSEvent.doubleClickInterval + 1.5 {
+                                            selectedSince = nil
                                             startRenaming(item: item)
                                             return
                                         }
                                         // Plain click: single selection
+                                        // A click on the already-selected item outside the window
+                                        // restarts it, so click · pause · click works from anywhere.
                                         selectedItems = [item.id]
                                         lastSelectedItem = item
                                         selectedSince = Date()
