@@ -63,6 +63,8 @@ struct FileBrowserPanel: View {
     @State private var isCreatingNewFolder = false
     @State private var showDrivePicker = false
     @State private var renameError: String?
+    /// When the current single selection was made — for Finder's slow-click rename.
+    @State private var selectedSince: Date?
     @State private var isCreatingNewFile = false
     @State private var newItemName = "untitled"
     @State private var renamingItem: FileItem?
@@ -498,9 +500,20 @@ struct FileBrowserPanel: View {
                                         // Shift+click: range selection
                                         selectRange(to: item)
                                     } else {
+                                        // Build 18 — Finder's slow click: a plain click on the item
+                                        // that is ALREADY the only selection renames it. His ask:
+                                        // "click click renames" (double-click still opens — this
+                                        // handler only fires once the double-click window has passed).
+                                        if selectedItems == [item.id], renamingItem == nil,
+                                           let since = selectedSince,
+                                           Date().timeIntervalSince(since) > NSEvent.doubleClickInterval {
+                                            startRenaming(item: item)
+                                            return
+                                        }
                                         // Plain click: single selection
                                         selectedItems = [item.id]
                                         lastSelectedItem = item
+                                        selectedSince = Date()
                                     }
                                 }
                             }
