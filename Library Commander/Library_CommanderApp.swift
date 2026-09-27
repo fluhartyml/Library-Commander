@@ -109,7 +109,7 @@ struct Library_CommanderApp: App {
         }
         .defaultSize(width: 900, height: 720)
 
-        // His idea, 2026-09-27: Nuclear mode + a text-size slider, as accessibility options.
+        // His idea, 2026-09-27: Arrow Key Sorting + a text-size slider, as accessibility options.
         Window("Accessibility", id: AccessibilityWindow.id) {
             AccessibilitySettingsView()
         }
