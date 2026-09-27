@@ -988,6 +988,9 @@ struct ContentView: View {
         // DJ CURATION: moving the track that is playing stops it, and the next one plays
         // once the move is done — but only if it really left (it may have been skipped).
         let currentMedia = pane == .left ? leftCurrentMedia : rightCurrentMedia
+        // Build 28 — his bug: paused, then Move, and the next video still played. Keep the
+        // play/pause state from BEFORE the player is stopped for the move.
+        let wasPlaying = pane == .left ? isLeftPlaying : isRightPlaying
         var movedPlaying: FileItem? = nil
         var nextTrackName: String? = nil
         if let media = currentMedia, sourceFiles.contains(where: { $0.path == media.path }) {
@@ -1015,7 +1018,7 @@ struct ContentView: View {
             clearSelection(pane, of: sourceFiles)
             if let played = movedPlaying, !FileManager.default.fileExists(atPath: played.path) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    playNextTrackInFocusedPane(preferredTrackName: nextTrackName)
+                    playNextTrackInFocusedPane(preferredTrackName: nextTrackName, play: wasPlaying)
                 }
             }
         }
@@ -1081,7 +1084,8 @@ struct ContentView: View {
         }
     }
 
-    private func playNextTrackInFocusedPane(preferredTrackName: String? = nil) {
+    /// `play: false` (paused before the move) highlights the next track and does not load it.
+    private func playNextTrackInFocusedPane(preferredTrackName: String? = nil, play: Bool = true) {
         let mediaFiles = activeFocusedFileSystem.files.filter { file in
             let type = getFileType(for: file)
             return type == .audio || type == .video
@@ -1118,7 +1122,7 @@ struct ContentView: View {
                 self.selectedRightItem = track
                 self.selectedRightItems = [track.id]
             }
-            self.handleDoubleClick(item: track)
+            if play { self.handleDoubleClick(item: track) }
         }
     }
 
