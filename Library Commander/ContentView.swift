@@ -67,6 +67,7 @@ struct ContentView: View {
     @State private var autoPlayNextLeft = true
     @State private var autoPlayOppositeLeft = false
     @State private var crossfadeLeft = false
+    @State private var autoplayLeft = true
     @State private var shouldAutoPlayLeft = false
     @State private var isLeftPlaying = false
 
@@ -76,6 +77,7 @@ struct ContentView: View {
     @State private var autoPlayNextRight = true
     @State private var autoPlayOppositeRight = false
     @State private var crossfadeRight = false
+    @State private var autoplayRight = true
     @State private var shouldAutoPlayRight = false
     @State private var isRightPlaying = false
 
@@ -396,6 +398,7 @@ struct ContentView: View {
                         autoPlayNext: $autoPlayNextLeft,
                         autoPlayOpposite: $autoPlayOppositeLeft,
                         crossfadeEnabled: $crossfadeLeft,
+                        autoplay: $autoplayLeft,
                         shouldAutoPlay: $shouldAutoPlayLeft,
                         isCurrentlyPlaying: $isLeftPlaying,
                         onSwitchToOpposite: switchLeftToRight,
@@ -480,6 +483,7 @@ struct ContentView: View {
                         autoPlayNext: $autoPlayNextRight,
                         autoPlayOpposite: $autoPlayOppositeRight,
                         crossfadeEnabled: $crossfadeRight,
+                        autoplay: $autoplayRight,
                         shouldAutoPlay: $shouldAutoPlayRight,
                         isCurrentlyPlaying: $isRightPlaying,
                         onSwitchToOpposite: switchRightToLeft,

@@ -49,6 +49,9 @@ struct FileBrowserPanel: View {
     @Binding var autoPlayNext: Bool
     @Binding var autoPlayOpposite: Bool
     @Binding var crossfadeEnabled: Bool
+    /// His ask, 2026-09-27: "does autoplay need a toggle switch of its own?" — yes.
+    /// Autoplay = moving to a video starts it. Next / Switch / Fade = what happens when one ends.
+    @Binding var autoplay: Bool
     @Binding var shouldAutoPlay: Bool  // Controls if media auto-plays on load
     @Binding var isCurrentlyPlaying: Bool  // Current playback state
     let onSwitchToOpposite: () -> Void
@@ -871,6 +874,7 @@ struct FileBrowserPanel: View {
                 autoPlayNext: $autoPlayNext,
                 autoPlayOpposite: $autoPlayOpposite,
                 crossfadeEnabled: $crossfadeEnabled,
+                autoplay: $autoplay,
                 shouldAutoPlay: $shouldAutoPlay,
                 isCurrentlyPlaying: $isCurrentlyPlaying,
                 fileSystem: fileSystem,
@@ -1124,9 +1128,8 @@ struct FileBrowserPanel: View {
                     currentMedia = selectedFile
                     // His rule, 2026-09-27: "if no toggle is set it should NOT play the
                     // video selected automatically." Selecting only carries playback
-                    // over when Next, Switch or Fade is on.
-                    let anyAutoPlayToggle = autoPlayNext || autoPlayOpposite || crossfadeEnabled
-                    if isCurrentlyPlaying && anyAutoPlayToggle {
+                    // over when Autoplay is on.
+                    if isCurrentlyPlaying && autoplay {
                         // Currently playing - keep playing the new track
                         shouldAutoPlay = true
                     } else {
@@ -1778,13 +1781,19 @@ struct FileBrowserPanel: View {
 
         guard let track = trackToPlay else { return }
 
-        // Select and play
-        shouldAutoPlay = true
+        // Select, and play only when Autoplay is on — otherwise load it paused.
+        shouldAutoPlay = autoplay
+        let play = autoplay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             self.selectedItems = [track.id]
             self.lastSelectedItem = track
             self.onItemSelect(track)
-            self.onItemDoubleClick(track)
+            if play {
+                self.onItemDoubleClick(track)
+            } else {
+                self.currentMedia = track
+                self.showMediaPlayer = true
+            }
         }
     }
 
@@ -1816,13 +1825,19 @@ struct FileBrowserPanel: View {
 
         guard let track = trackToPlay else { return }
 
-        // Select and play
-        shouldAutoPlay = true
+        // Select, and play only when Autoplay is on — otherwise load it paused.
+        shouldAutoPlay = autoplay
+        let play = autoplay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             self.selectedItems = [track.id]
             self.lastSelectedItem = track
             self.onItemSelect(track)
-            self.onItemDoubleClick(track)
+            if play {
+                self.onItemDoubleClick(track)
+            } else {
+                self.currentMedia = track
+                self.showMediaPlayer = true
+            }
         }
     }
 

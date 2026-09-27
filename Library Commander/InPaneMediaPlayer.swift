@@ -18,6 +18,8 @@ struct InPaneMediaPlayer: View {
     @Binding var autoPlayOpposite: Bool
     /// Owned by ContentView beside Next and Switch, so the pane can see it too.
     @Binding var crossfadeEnabled: Bool
+    /// Moving to a video starts it. Owned by ContentView beside the other three.
+    @Binding var autoplay: Bool
     @Binding var shouldAutoPlay: Bool  // Controls if player starts immediately or paused
     @Binding var isCurrentlyPlaying: Bool  // Expose playing state to parent
     let fileSystem: FileSystemService
@@ -345,6 +347,14 @@ struct InPaneMediaPlayer: View {
                 if !isMinimized.wrappedValue {
                 // Auto-play toggles
                 HStack(spacing: 12) {
+                    Toggle(isOn: $autoplay) {
+                        Text("Autoplay")
+                            .font(.lc(18))
+                    }
+                    .toggleStyle(.switch)
+                    .controlSize(.regular)
+                    .help("Start a video as soon as you move to it")
+
                     Toggle(isOn: $autoPlayNext) {
                         Text("▶ Next")
                             .font(.lc(18))
