@@ -25,6 +25,13 @@ enum SandboxAccess {
     static func restoreSavedGrants() {
         guard !restored else { return }
         restored = true
+        // Build 20: grants saved while user-selected files were READ-ONLY (builds 7–18) may
+        // reopen read-only. He switched the target to Read/Write; drop those once so each
+        // drive is asked for again and saved with write access.
+        if UserDefaults.standard.string(forKey: "sandboxGrantsMode") != "readwrite" {
+            UserDefaults.standard.removeObject(forKey: key)
+            UserDefaults.standard.set("readwrite", forKey: "sandboxGrantsMode")
+        }
         var grants = UserDefaults.standard.dictionary(forKey: key) as? [String: Data] ?? [:]
         for (path, data) in grants {
             var stale = false
@@ -79,7 +86,7 @@ enum SandboxAccess {
     }
 
     private static func bookmark(for url: URL) -> Data? {
-        // The target leaves user-selected files READ-ONLY, so try the read-only form second.
+        // Read/Write since build 19; the read-only form stays as a fallback.
         (try? url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil))
         ?? (try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
                                   includingResourceValuesForKeys: nil, relativeTo: nil))
