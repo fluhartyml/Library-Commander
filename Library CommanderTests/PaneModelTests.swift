@@ -165,4 +165,82 @@ struct PaneModelTests {
         #expect(pane.currentURL == nil)
         #expect(pane.missingRootPath == nil)
     }
+
+    // MARK: - Step three: path box, drive picker, status bar
+
+    @Test func typingAPathInsideTheFolderOpensIt() throws {
+        let pane = makePane()
+        let root = try makeFolder()
+        pane.choose(root: root)
+        #expect(pane.go(toPath: root.appendingPathComponent("Zeta Folder").path) == .opened)
+        #expect(pane.currentURL?.lastPathComponent == "Zeta Folder")
+    }
+
+    @Test func typingAPathThatIsNotThereSaysSoAndStaysPut() throws {
+        let pane = makePane()
+        let root = try makeFolder()
+        pane.choose(root: root)
+        #expect(pane.go(toPath: root.appendingPathComponent("No Such Folder").path) == .notFound)
+        #expect(pane.go(toPath: "not a path") == .notFound)
+        #expect(pane.currentURL?.standardizedFileURL.path == root.standardizedFileURL.path)
+    }
+
+    @Test func typingAFilePathSaysItIsNotAFolder() throws {
+        let pane = makePane()
+        let root = try makeFolder()
+        pane.choose(root: root)
+        #expect(pane.go(toPath: root.appendingPathComponent("Track 2.mp4").path) == .notAFolder)
+    }
+
+    @Test func aPathOutsideEverythingGrantedAsksFirst() throws {
+        let pane = makePane()
+        pane.choose(root: try makeFolder())
+        let elsewhere = try makeFolder()           // never granted
+        #expect(pane.go(toPath: elsewhere.path) == .needsPermission)
+    }
+
+    @Test func aFolderGrantedEarlierOpensWithoutAsking() throws {
+        let store = makeStore()
+        let first = try makeFolder()
+        let second = try makeFolder()
+        let pane = makePane(store)
+        pane.choose(root: second)                  // granted once…
+        pane.choose(root: first)                   // …then he moved on
+        #expect(pane.go(toPath: second.appendingPathComponent("Alpha Folder").path) == .opened)
+        #expect(pane.rootURL?.standardizedFileURL.path == second.standardizedFileURL.path)  // new ceiling
+        #expect(pane.canGoUp)
+    }
+
+    @Test func aGrantIsSharedByBothPanes() throws {
+        let store = makeStore()
+        let root = try makeFolder()
+        PaneModel(side: "left", store: store).choose(root: root)
+        let right = PaneModel(side: "right", store: store)
+        #expect(right.go(toPath: root.path) == .opened)
+    }
+
+    @Test func tildeMeansTheRealHomeNotTheSandbox() {
+        #expect(!PaneModel.realHome.contains("/Library/Containers/"))
+    }
+
+    @Test func statusBarKeepsTheLastMessage() {
+        let commander = CommanderModel(store: makeStore())
+        #expect(commander.status == "Ready.")
+        commander.report("Nothing at /nowhere.", problem: true)
+        #expect(commander.status == "Nothing at /nowhere.")
+        #expect(commander.statusIsProblem)
+        commander.report("Opened Lexar 3 TB.")
+        #expect(!commander.statusIsProblem)
+    }
+
+    @Test func statusBarNamesADriveThatIsNotConnected() throws {
+        let store = makeStore()
+        let root = try makeFolder()
+        CommanderModel(store: store).left.choose(root: root)
+        try FileManager.default.removeItem(at: root)
+        let commander = CommanderModel(store: store)
+        commander.restore()
+        #expect(commander.statusIsProblem)
+        #expect(commander.status.contains(root.lastPathComponent))
+    }
 }

@@ -4,9 +4,11 @@
 //
 // REM  FILE COMMANDER FIRST, MEDIA SECOND — see Library_CommanderApp.swift.
 // REM
-// REM  One pane on screen: Choose Folder…, the folder's path, and a plain list of what is
-// REM  in it. The list does NOT take the keyboard — KeyRouter.swift drives it. A click
+// REM  One pane on screen. Header, his layout (2026-09-28): a DRIVE PICKER, a "↑ .." button
+// REM  (up one folder), and a PATH BOX he can type a path into. Then a plain list of what is in
+// REM  the folder. The list does NOT take the keyboard — KeyRouter.swift drives it. A click
 // REM  highlights a row and makes this pane active; a double-click opens a folder.
+// REM  What happens (or why it could not) is told in the status bar at the bottom.
 //
 
 import SwiftUI
@@ -16,6 +18,11 @@ struct PaneView: View {
     let pane: PaneModel
     let isActive: Bool
     let onActivate: () -> Void
+    /// Sends a message to the status bar. `true` = a problem.
+    let report: (String, Bool) -> Void
+
+    @State private var pathText = ""
+    @State private var drives: [Drive] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,26 +38,96 @@ struct PaneView: View {
         )
         // A click anywhere in the pane makes it active.
         .simultaneousGesture(TapGesture().onEnded { onActivate() })
+        .onAppear {
+            drives = Drives.mounted()
+            pathText = pane.currentURL?.path ?? ""
+        }
+        .onChange(of: pane.currentURL) { _, url in pathText = url?.path ?? "" }
+        // The drive list follows what is plugged in.
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in
+            drives = Drives.mounted()
+        }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didUnmountNotification)) { _ in
+            drives = Drives.mounted()
+        }
     }
 
+    // MARK: - Header: drive picker · ↑ .. · path box
+
     private var header: some View {
-        HStack(spacing: 10) {
-            Button("Choose Folder…") { chooseFolder() }
+        HStack(spacing: 8) {
+            Menu {
+                ForEach(drives) { drive in
+                    Button(drive.name) { go(to: drive.url.path, name: drive.name) }
+                }
+                Divider()
+                Button("Other Folder…") { askForFolder(startingAt: nil) }
+            } label: {
+                Label(pane.driveName ?? "Drives", systemImage: "externaldrive")
+            }
+            .fixedSize()
+            .help("Choose a drive")
+
             Button {
                 pane.goUp()
             } label: {
-                Image(systemName: "arrow.up")
+                // (^).. — the same look as the old Library Commander's up button.
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.circle.fill")
+                    Text("..").font(.system(size: 18, design: .monospaced))
+                }
             }
             .disabled(!pane.canGoUp)
             .help("Up one folder (⌘↑)")
-            Text(pane.currentURL?.path ?? "No folder chosen")
-                .lineLimit(1)
-                .truncationMode(.head)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
+
+            TextField("Type a path and press Return", text: $pathText)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { go(to: pathText, name: nil) }
         }
         .padding(8)
     }
+
+    /// The drive picker and the path box both come here.
+    private func go(to path: String, name: String?) {
+        onActivate()
+        let label = name ?? path
+        switch pane.go(toPath: path) {
+        case .opened:
+            report("Opened \(label).", false)
+        case .notFound:
+            report("Nothing at \(path).", true)
+            pathText = pane.currentURL?.path ?? ""
+        case .notAFolder:
+            report("\(path) is a file, not a folder.", true)
+            pathText = pane.currentURL?.path ?? ""
+        case .needsPermission:
+            // The sandbox needs him to grant it once; after that it opens without asking.
+            askForFolder(startingAt: URL(fileURLWithPath: path))
+        }
+    }
+
+    /// The sandbox only lets the app into folders he picks here, so this is the way in.
+    private func askForFolder(startingAt start: URL?) {
+        onActivate()
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = start
+        panel.prompt = "Grant Access"
+        if let start {
+            panel.message = "Library Commander needs your permission once to open “\(FileManager.default.displayName(atPath: start.path))”. Select it and click Grant Access."
+        }
+        if panel.runModal() == .OK, let url = panel.url {
+            pane.choose(root: url)
+            report("Opened \(FileManager.default.displayName(atPath: url.path)). You will not be asked for it again.", false)
+        } else {
+            report("Nothing opened — access was not granted.", true)
+            pathText = pane.currentURL?.path ?? ""
+        }
+    }
+
+    // MARK: - List
 
     @ViewBuilder
     private var content: some View {
@@ -62,7 +139,6 @@ struct PaneView: View {
                 Text("“\(FileManager.default.displayName(atPath: missing))” is not connected.")
                 Text(missing).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 Text("It will come back here when it is.").foregroundStyle(.secondary)
-                Button("Choose a Different Folder…") { chooseFolder() }
                 Spacer()
             }
             .padding(.horizontal)
@@ -70,9 +146,8 @@ struct PaneView: View {
         } else if pane.currentURL == nil {
             VStack(spacing: 12) {
                 Spacer()
-                Text("Choose a folder or drive to show here.")
+                Text("Pick a drive above, or type a path.")
                     .foregroundStyle(.secondary)
-                Button("Choose Folder…") { chooseFolder() }
                 Spacer()
             }
             .frame(maxWidth: .infinity)
@@ -136,18 +211,5 @@ struct PaneView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-    }
-
-    /// The sandbox only lets the app into folders he picks here, so this is the way in.
-    private func chooseFolder() {
-        onActivate()
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        panel.prompt = "Show in Pane"
-        if panel.runModal() == .OK, let url = panel.url {
-            pane.choose(root: url)
-        }
     }
 }

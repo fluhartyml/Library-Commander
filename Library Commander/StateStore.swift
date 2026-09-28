@@ -61,6 +61,38 @@ final class StateStore {
         defaults.set(selectedPath, forKey: key(side, "selectedPath"))
     }
 
+    // MARK: - Granted folders and drives
+
+    // REM  Every drive or folder he has ever granted, as [path: bookmark]. Picking a drive or
+    // REM  typing a path inside any of them opens it without asking again. A grant that cannot be
+    // REM  opened right now (drive unplugged) is KEPT — it works again when the drive is back.
+
+    private var grants: [String: Data] {
+        get { defaults.dictionary(forKey: "grants") as? [String: Data] ?? [:] }
+        set { defaults.set(newValue, forKey: "grants") }
+    }
+
+    func addGrant(_ url: URL) {
+        guard let data = Self.bookmark(for: url) else { return }
+        grants[url.standardizedFileURL.path] = data
+    }
+
+    /// The closest granted folder that holds `path` (or is it), if any.
+    func grantCovering(_ path: String) -> (path: String, bookmark: Data)? {
+        let target = URL(fileURLWithPath: path).standardizedFileURL.path
+        return grants
+            .filter { Self.path(target, isInside: $0.key) }
+            .max { $0.key.count < $1.key.count }
+            .map { ($0.key, $0.value) }
+    }
+
+    /// True when `path` is `folder` or somewhere inside it.
+    static func path(_ path: String, isInside folder: String) -> Bool {
+        if path == folder { return true }
+        let prefix = folder.hasSuffix("/") ? folder : folder + "/"
+        return path.hasPrefix(prefix)
+    }
+
     // MARK: - Active pane
 
     var activeSideIsRight: Bool {

@@ -97,21 +97,80 @@ final class PaneModel {
 
     private func isInsideRoot(_ path: String) -> Bool {
         guard let rootURL else { return false }
-        let root = rootURL.standardizedFileURL.path
-        let p = URL(fileURLWithPath: path).standardizedFileURL.path
-        return p == root || p.hasPrefix(root.hasSuffix("/") ? root : root + "/")
+        return StateStore.path(URL(fileURLWithPath: path).standardizedFileURL.path,
+                               isInside: rootURL.standardizedFileURL.path)
     }
 
     // MARK: - Folders
 
-    /// A new root, chosen by him. Shows it, highlights the first row, and saves the permission.
+    /// A new root, chosen by him. Shows it, highlights the first row, and saves the permission —
+    /// both as this pane's place and in the list of everything he has granted.
     func choose(root: URL) {
-        rootURL?.stopAccessingSecurityScopedResource()
+        setRoot(root, bookmark: StateStore.bookmark(for: root))
+        store.addGrant(root)
+        show(folder: root, highlight: nil)
+    }
+
+    private func setRoot(_ root: URL, bookmark: Data?) {
+        if let old = rootURL, old != root { old.stopAccessingSecurityScopedResource() }
         _ = root.startAccessingSecurityScopedResource()
         rootURL = root
         missingRootPath = nil
-        store.save(root: StateStore.bookmark(for: root), rootPath: root.path, for: side)
-        show(folder: root, highlight: nil)
+        store.save(root: bookmark, rootPath: root.path, for: side)
+    }
+
+    // MARK: - Going to a path or a drive
+
+    enum GoResult: Equatable {
+        case opened
+        /// Nothing is there.
+        case notFound
+        /// It is a file, not a folder.
+        case notAFolder
+        /// Outside everything he has granted — the sandbox needs him to grant it first.
+        case needsPermission
+    }
+
+    /// The path box and the drive picker both come here. Inside this pane's folder, or inside
+    /// anything he granted before, it opens straight away; anywhere else he is asked first.
+    /// "~" means his real home folder, not the sandbox's.
+    func go(toPath typed: String) -> GoResult {
+        var raw = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.hasPrefix("~") { raw = Self.realHome + raw.dropFirst() }
+        guard raw.hasPrefix("/") else { return .notFound }
+        let target = URL(fileURLWithPath: raw).standardizedFileURL
+
+        if !isInsideRoot(target.path) {
+            guard let grant = store.grantCovering(target.path),
+                  let (url, _) = StateStore.resolve(grant.bookmark) else { return .needsPermission }
+            // A different granted folder becomes this pane's ceiling.
+            guard exists(target).found else { return .notFound }
+            setRoot(url, bookmark: grant.bookmark)
+        }
+        let (found, isFolder) = exists(target)
+        guard found else { return .notFound }
+        guard isFolder else { return .notAFolder }
+        show(folder: target, highlight: nil)
+        return .opened
+    }
+
+    private func exists(_ url: URL) -> (found: Bool, isFolder: Bool) {
+        var isDir: ObjCBool = false
+        let found = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+        return (found, isDir.boolValue)
+    }
+
+    /// His home folder. Inside the sandbox NSHomeDirectory() is the app's container, so the
+    /// real one comes from the user database.
+    static var realHome: String {
+        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir { return String(cString: dir) }
+        return NSHomeDirectory()
+    }
+
+    /// The name of the drive this pane is on, for the drive picker's label.
+    var driveName: String? {
+        guard let currentURL else { return nil }
+        return (try? currentURL.resourceValues(forKeys: [.volumeNameKey]))?.volumeName
     }
 
     /// Opens the highlighted row if it is a folder. Files do nothing yet (step one).

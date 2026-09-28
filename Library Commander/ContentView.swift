@@ -23,19 +23,16 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 PaneView(pane: commander.left,
                          isActive: commander.activeSide == .left,
-                         onActivate: { commander.activeSide = .left })
+                         onActivate: { commander.activeSide = .left },
+                         report: { commander.report($0, problem: $1) })
                 Divider()
                 PaneView(pane: commander.right,
                          isActive: commander.activeSide == .right,
-                         onActivate: { commander.activeSide = .right })
+                         onActivate: { commander.activeSide = .right },
+                         report: { commander.report($0, problem: $1) })
             }
             Divider()
-            // Build number, commit and build time, readable out loud — see BuildStamp.swift.
-            Text(BuildStamp.summary)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+            statusBar
         }
         .frame(minWidth: 900, minHeight: 500)
         .background(WindowFrameSaver(name: "LibraryCommanderMain"))
@@ -49,6 +46,27 @@ struct ContentView: View {
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in
             commander.restore()
         }
+    }
+
+    // REM  THE STATUS BAR — his ask, 2026-09-28: "a user status / feedback bottom bar that uses
+    // REM  the version 1.0 build 41 text bar." Left: what just happened, or what went wrong
+    // REM  (orange). Right: the build line, which stays — it is how a build is told apart.
+    private var statusBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: commander.statusIsProblem ? "exclamationmark.triangle.fill" : "info.circle")
+                .foregroundStyle(commander.statusIsProblem ? Color.orange : Color.secondary)
+            Text(commander.status)
+                .foregroundStyle(commander.statusIsProblem ? Color.orange : Color.primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 16)
+            // Build number, commit and build time, readable out loud — see BuildStamp.swift.
+            Text(BuildStamp.summary)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
     }
 }
 
