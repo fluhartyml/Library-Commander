@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import os
 
 // Track modifier keys at mouseDown time (before SwiftUI gesture fires)
 // NOTE: Shift+click is unreliable due to SwiftUI gesture timing - Command+click works
@@ -33,6 +34,51 @@ class ModifierKeyTracker {
 
     func checkModifiers() -> (command: Bool, shift: Bool) {
         return (command: commandAtLastClick, shift: shiftAtLastClick)
+    }
+}
+
+// Build 36 — DEBUG, his ask 2026-09-28: "why would the list looose control of the keyboard?"
+// Records which control holds the keyboard after every click, and when Delete or an arrow is
+// pressed. Xcode's console shows "[FOCUS]" lines; the system log has them under the app's
+// bundle ID, category "focus". Remove once the cause is known.
+final class FocusDebugLog {
+    static let shared = FocusDebugLog()
+    private let log = Logger(subsystem: "com.fluharty.Library-Commander", category: "focus")
+    private var monitor: Any?
+
+    private init() {
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .keyDown]) { [weak self] event in
+            if event.type == .keyDown {
+                let names: [UInt16: String] = [51: "Delete", 123: "←", 124: "→", 125: "↓", 126: "↑"]
+                if let key = names[event.keyCode] { self?.record("key \(key)", window: event.window) }
+            } else {
+                // The click has not been handled yet — read the keyboard owner once it has.
+                let window = event.window
+                DispatchQueue.main.async { self?.record("click", window: window) }
+            }
+            return event
+        }
+    }
+
+    func start() {}
+
+    private func record(_ what: String, window: NSWindow?) {
+        let line = "[FOCUS] \(what) → \(Self.describe(window?.firstResponder))"
+        print(line)
+        log.notice("\(line, privacy: .public)")
+    }
+
+    /// The keyboard owner's class, then its first few enclosing views — enough to tell the
+    /// file list from the video player, a toggle, or the window itself.
+    private static func describe(_ responder: NSResponder?) -> String {
+        guard let responder else { return "nothing" }
+        var parts = [String(describing: type(of: responder))]
+        var view = (responder as? NSView)?.superview
+        while let v = view, parts.count < 5 {
+            parts.append(String(describing: type(of: v)))
+            view = v.superview
+        }
+        return parts.joined(separator: " ‹ ")
     }
 }
 

@@ -798,6 +798,7 @@ struct ContentView: View {
             showShazamSettings = true
         }
         .onAppear {
+            FocusDebugLog.shared.start()  // Build 36 — DEBUG: who holds the keyboard
             // Wire up hardware media key controls
             mediaKeyHandler.onPlayPause = {
                 // Toggle play/pause for whichever pane is currently playing
