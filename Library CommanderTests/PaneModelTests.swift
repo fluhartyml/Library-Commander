@@ -48,10 +48,12 @@ struct PaneModelTests {
         #expect(pane.entries.map(\.name) == ["Alpha Folder", "Zeta Folder", "Track 2.mp4", "Track 10.mp4"])
     }
 
-    @Test func choosingAFolderHighlightsTheFirstRow() throws {
+    @Test func choosingAFolderHighlightsNothing() throws {
+        // REM  Build 55, his ruling: opening a folder no longer lights up its first row by itself —
+        // REM  a copy would have gone into that folder without him choosing it.
         let pane = makePane()
         pane.choose(root: try makeFolder())
-        #expect(pane.selectedEntry?.name == "Alpha Folder")
+        #expect(pane.selectedID == nil)
     }
 
     @Test func arrowsMoveOneRowAndStopAtBothEnds() throws {
@@ -69,6 +71,7 @@ struct PaneModelTests {
         let pane = makePane()
         let root = try makeFolder()
         pane.choose(root: root)
+        pane.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         pane.openSelected()                        // Alpha Folder
         #expect(pane.entries.map(\.name) == ["inside.txt"])
         #expect(pane.canGoUp)
@@ -96,6 +99,7 @@ struct PaneModelTests {
         let pane = makePane()
         let root = try makeFolder()
         pane.choose(root: root)
+        pane.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         pane.moveSelection(by: 2)                  // Track 2.mp4
         pane.openSelected()
         #expect(pane.currentURL?.standardizedFileURL.path == root.standardizedFileURL.path)
@@ -105,6 +109,7 @@ struct PaneModelTests {
         let pane = makePane()
         let root = try makeFolder()
         pane.choose(root: root)
+        pane.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         pane.moveSelection(by: 3)                  // Track 10.mp4
         try Data().write(to: root.appendingPathComponent("Track 1.mp4"))  // a new file lands above it
         pane.reload()
@@ -125,7 +130,9 @@ struct PaneModelTests {
         let root = try makeFolder()
         let first = makePane(store)
         first.choose(root: root)
-        first.openSelected()                       // into Alpha Folder, inside.txt highlighted
+        first.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
+        first.openSelected()                       // into Alpha Folder — nothing highlighted
+        first.moveSelection(by: 1)                 // ↓ highlights inside.txt
 
         let reopened = makePane(store)             // the app launched again
         reopened.restore()
@@ -139,6 +146,7 @@ struct PaneModelTests {
         let store = makeStore()
         let first = makePane(store)
         first.choose(root: try makeFolder())
+        first.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         first.moveSelection(by: 3)                 // Track 10.mp4
 
         let reopened = makePane(store)

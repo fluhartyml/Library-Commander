@@ -103,6 +103,15 @@ struct PaneView: View {
                 .focused($pathFocused)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { go(to: pathText, name: nil) }
+                // REM  TARGET MARKER ON THE PATH BOX (build 55): when this pane is the destination and
+                // REM  nothing — or a file — is highlighted, copies land in the OPEN folder, so the
+                // REM  marker sits on the path box that names it. An overlay, so it never shifts his
+                // REM  drive → path → (^).. order.
+                .overlay(alignment: .trailing) {
+                    if isOpenFolderTarget {
+                        targetMarker.padding(.trailing, 6).allowsHitTesting(false)
+                    }
+                }
 
             Button {
                 pane.goUp()
@@ -117,6 +126,32 @@ struct PaneView: View {
             .help(pane.isAtTop ? "Show all drives (⌘↑)" : "Up one folder (⌘↑)")
         }
         .padding(8)
+    }
+
+    // MARK: - Copy target marker (build 55)
+
+    // REM  This pane is the DESTINATION whenever it is NOT the active pane — his rule: the active
+    // REM  pane is the source, and either side can be either. The marker shows only on the
+    // REM  destination, and only in ONE place at a time: the highlighted folder row, or else the
+    // REM  path box. One marker = one answer to "where will it go?".
+
+    private var isDestination: Bool { !isActive }
+
+    private var isOpenFolderTarget: Bool {
+        guard isDestination, case .openFolder = pane.copyTarget else { return false }
+        return true
+    }
+
+    private func isTargetRow(_ entry: FileEntry) -> Bool {
+        isDestination && pane.copyTarget == .highlightedFolder(entry.url)
+    }
+
+    /// A tray with an arrow into it — "files land here".
+    private var targetMarker: some View {
+        Label("Target", systemImage: "tray.and.arrow.down.fill")
+            .labelStyle(.titleAndIcon)
+            .foregroundStyle(Color.accentColor)
+            .help("Copies and moves from the other pane will go here")
     }
 
     /// The drive picker and the path box both come here.
@@ -356,6 +391,11 @@ struct PaneView: View {
             // REM  "local or network" — his words; each drive row says which.
             if let drive = entry.drive {
                 Text(drive.title).foregroundStyle(.secondary)
+            }
+            // REM  TARGET MARKER ON A FOLDER ROW (build 55): this folder is highlighted in the
+            // REM  destination pane, so copies go INTO it (his rule).
+            if isTargetRow(entry) {
+                targetMarker
             }
         }
         .padding(.horizontal, 8)

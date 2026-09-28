@@ -61,6 +61,17 @@ struct ContentView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 16)
+            // REM  WHERE A COPY WOULD LAND (build 55) — always showing, so he can check it before he
+            // REM  acts. The arrow points from the source (active pane) at the destination and flips
+            // REM  when Tab swaps them.
+            HStack(spacing: 6) {
+                Image(systemName: "tray.and.arrow.down.fill")
+                Text(commander.copyTargetLine)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .foregroundStyle(commander.destinationPane.copyTarget == nil ? Color.secondary : Color.accentColor)
+            Spacer(minLength: 16)
             // Build number, commit and build time, readable out loud — see BuildStamp.swift.
             Text(BuildStamp.summary)
                 .foregroundStyle(.secondary)

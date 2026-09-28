@@ -184,7 +184,7 @@ final class PaneModel {
 
     // MARK: - Folders
 
-    /// A new root, chosen by him. Shows it, highlights the first row, and saves the permission —
+    /// A new root, chosen by him. Shows it with NOTHING highlighted, and saves the permission —
     /// both as this pane's place and in the list of everything he has granted.
     func choose(root: URL) {
         setRoot(root, bookmark: StateStore.bookmark(for: root))
@@ -312,10 +312,18 @@ final class PaneModel {
             errorMessage = error.localizedDescription
         }
         rebuildRows()
+        // REM  NO AUTO-HIGHLIGHT — his ruling, 2026-09-28 (build 55). Opening a folder used to
+        // REM  highlight its first row by itself. That was a TRAP once copies land in a highlighted
+        // REM  folder (his rule): open Video Convert and Classic Cinema lit up on its own, so a copy
+        // REM  would have gone INTO Classic Cinema instead of Video Convert without him choosing it.
+        // REM  So a highlight only appears when HE makes one (a click or an arrow key) — or when it
+        // REM  is one he already made: the saved highlight at launch, the folder just left on (^)..,
+        // REM  the folder he just made, the same file after a re-sort or Refresh.
+        // REM  If that file is gone, the highlight goes to NOTHING, never to a row he did not pick.
         if let highlight, rows.contains(where: { $0.id == highlight }) {
             selectedID = highlight
         } else {
-            selectedID = rows.first?.id
+            selectedID = nil
         }
     }
 
@@ -398,6 +406,43 @@ final class PaneModel {
         let target = min(max(index + offset, 0), rows.count - 1)
         selectedID = rows[target].id
     }
+
+    // MARK: - Copy target (where a copy or move INTO this pane lands)
+
+    // REM  HIS RULE, 2026-09-28: a copy goes into "the highlighted folder if one is highlighted" —
+    // REM  otherwise into the folder the pane has open. This pane is the DESTINATION when the
+    // REM  OTHER pane is active (the source). The target is SHOWN on screen before anything is
+    // REM  copied (build 55) — a marker on the folder row or on the path box, and its name in the
+    // REM  status bar — so he never has to guess where a file will go.
+    // REM  Copy and move themselves are NOT built yet; this only decides and shows the target.
+
+    enum CopyTarget: Equatable {
+        /// A folder row highlighted in this pane — copies go INTO it.
+        case highlightedFolder(URL)
+        /// Nothing, or a file, is highlighted — copies go into the open folder.
+        case openFolder(URL)
+
+        var url: URL {
+            switch self {
+            case .highlightedFolder(let url), .openFolder(let url): return url
+            }
+        }
+    }
+
+    /// Where a copy into this pane would land. nil = nowhere yet (no folder open, or the pane is
+    /// showing the drive list — a drive must be opened first, which may need his permission).
+    var copyTarget: CopyTarget? {
+        guard !showingDrives, let currentURL else { return nil }
+        if let entry = selectedEntry, Self.canReceive(entry) {
+            return .highlightedFolder(entry.url)
+        }
+        return .openFolder(currentURL)
+    }
+
+    /// A row a copy can go INTO: a real folder. REM  Not a package (.app, .photoslibrary) —
+    /// dropping files inside one of those would damage it; macOS shows them as one item. Not a
+    /// drive-list row. Same test as the reveal triangle: if you can see inside it, you can drop in it.
+    static func canReceive(_ entry: FileEntry) -> Bool { canReveal(entry) }
 
     // MARK: - Reveal (Finder's disclosure triangle)
 

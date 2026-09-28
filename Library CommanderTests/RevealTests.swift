@@ -47,6 +47,7 @@ struct RevealTests {
     @Test func revealingNeverMovesTheHighlight() throws {
         let pane = PaneModel(side: "left", store: makeStore())
         pane.choose(root: try makeFolder())
+        pane.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         pane.moveSelection(by: 1)                                   // Holding
         pane.toggleReveal(entry(pane, "Classic Cinema"))
         #expect(pane.selectedEntry?.name == "Holding")
@@ -57,6 +58,7 @@ struct RevealTests {
     @Test func theRevealedFolderItselfStaysHighlighted() throws {
         let pane = PaneModel(side: "left", store: makeStore())
         pane.choose(root: try makeFolder())                         // Classic Cinema highlighted
+        pane.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         pane.toggleReveal(entry(pane, "Classic Cinema"))
         #expect(pane.selectedEntry?.name == "Classic Cinema")
     }
@@ -64,6 +66,7 @@ struct RevealTests {
     @Test func arrowsStepThroughRevealedContents() throws {
         let pane = PaneModel(side: "left", store: makeStore())
         pane.choose(root: try makeFolder())
+        pane.moveSelection(by: 1)                  // ↓ highlights the first row — nothing is highlighted on opening (build 55)
         pane.toggleReveal(entry(pane, "Classic Cinema"))
         pane.moveSelection(by: 2)
         #expect(pane.selectedEntry?.name == "Casablanca.mp4")

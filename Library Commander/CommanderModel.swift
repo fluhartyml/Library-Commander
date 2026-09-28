@@ -70,6 +70,30 @@ final class CommanderModel {
         }
     }
 
+    // MARK: - Source and destination
+
+    // REM  HIS RULE, 2026-09-28 — never think in LEFT and RIGHT: the ACTIVE pane is the SOURCE, the
+    // REM  other pane is the DESTINATION, and either pane can be either one (Tab swaps them).
+    // REM  The arrow that points AT the destination will copy or move; the arrow pointing back at
+    // REM  the source will undo. So the arrow shown here flips with the active pane.
+
+    var destinationSide: PaneSide { activeSide.other }
+    var destinationPane: PaneModel { pane(destinationSide) }
+
+    /// The arrow that points from the source at the destination.
+    var arrowTowardDestination: String { destinationSide == .right ? "→" : "←" }
+
+    /// The status bar's standing line: where a copy would land right now.
+    /// REM  Always visible (not a message that the next message replaces), because the whole
+    /// REM  point is that he can check the target at any moment before acting.
+    var copyTargetLine: String {
+        guard let target = destinationPane.copyTarget else {
+            return "\(arrowTowardDestination) No target yet — open a folder in the other pane"
+        }
+        let name = FileManager.default.displayName(atPath: target.url.path)
+        return "\(arrowTowardDestination) Target: \(name)"
+    }
+
     /// Tab — the other pane becomes active.
     func switchPanes() {
         activeSide = activeSide.other
