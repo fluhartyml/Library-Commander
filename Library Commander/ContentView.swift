@@ -996,20 +996,10 @@ struct ContentView: View {
         let sourceFiles = activeFocusedFileSystem.files.filter { selectedIDs.contains($0.id) }
         guard !sourceFiles.isEmpty else { return }
 
-        // DJ CURATION: moving the track that is playing stops it, and the next one plays
-        // once the move is done — but only if it really left (it may have been skipped).
+        // Moving the track that is loaded stops it first. (Until build 30 the next one then
+        // played; his word 2026-09-28 is to highlight it instead — see below.)
         let currentMedia = pane == .left ? leftCurrentMedia : rightCurrentMedia
-        var movedPlaying: FileItem? = nil
-        var nextTrackName: String? = nil
         if let media = currentMedia, sourceFiles.contains(where: { $0.path == media.path }) {
-            movedPlaying = media
-            let mediaFiles = activeFocusedFileSystem.files.filter { file in
-                let type = getFileType(for: file)
-                return type == .audio || type == .video
-            }
-            if let i = mediaFiles.firstIndex(where: { $0.path == media.path }), i + 1 < mediaFiles.count {
-                nextTrackName = mediaFiles[i + 1].name
-            }
             if pane == .left {
                 leftCurrentMedia = nil
                 showLeftMediaPlayer = false
@@ -1019,15 +1009,29 @@ struct ContentView: View {
             }
         }
 
+        // Build 30 — his ask, 2026-09-28: after ⌘6 the next file in the source pane should be
+        // highlighted — ***"just highlight it"***, never played. Chosen by PATH before the move,
+        // because a reload gives every file a new id.
+        let sourceFS = activeFocusedFileSystem
+        let movingPaths = Set(sourceFiles.map(\.path))
+        let nextPath = nextFilePath(after: movingPaths, in: sourceFS.files)
+
         fileOps.start(.move,
                       sources: sourceFiles.map { URL(fileURLWithPath: $0.path) },
                       target: URL(fileURLWithPath: targetPath)) { _ in
             // Only what THIS move took leaves the selection — another may be being picked.
             clearSelection(pane, of: sourceFiles)
-            if let played = movedPlaying, !FileManager.default.fileExists(atPath: played.path) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    playNextTrackInFocusedPane(preferredTrackName: nextTrackName)
-                }
+            guard let nextPath else { return }
+            sourceFS.loadFiles()
+            // Only if the pane still shows that folder and nothing else was picked meanwhile.
+            let stillEmpty = (pane == .left ? selectedLeftItems : selectedRightItems).isEmpty
+            guard stillEmpty, let next = sourceFS.files.first(where: { $0.path == nextPath }) else { return }
+            if pane == .left {
+                selectedLeftItem = next
+                selectedLeftItems = [next.id]
+            } else {
+                selectedRightItem = next
+                selectedRightItems = [next.id]
             }
         }
     }
@@ -1070,6 +1074,16 @@ struct ContentView: View {
     }
 
     /// After a move: take the items it moved out of that pane's selection, and nothing else.
+    /// The first file below the moved ones in the pane's order, or failing that the last one
+    /// above them. Folders are skipped — he is sorting files.
+    private func nextFilePath(after moving: Set<String>, in files: [FileItem]) -> String? {
+        let indices = files.indices.filter { moving.contains(files[$0].path) }
+        guard let last = indices.max(), let first = indices.min() else { return nil }
+        let isCandidate: (FileItem) -> Bool = { !$0.isDirectory && !moving.contains($0.path) }
+        if let below = files[(last + 1)...].first(where: isCandidate) { return below.path }
+        return files[..<first].last(where: isCandidate)?.path
+    }
+
     private func clearSelection(_ pane: FocusedPane, of items: [FileItem]) {
         let ids = Set(items.map(\.id))
         if pane == .left {
