@@ -70,6 +70,10 @@ struct FileBrowserPanel: View {
     @State private var fileErrorTitle = "Rename failed"
     /// When the current single selection was made — for Finder's slow-click rename.
     @State private var selectedSince: Date?
+    /// Build 29 — the item a plain CLICK selected. The slow-click rename needs the first click
+    /// to have been a click: a video reached with the arrows and then clicked once was renaming
+    /// immediately (his bug, 2026-09-28). Any other change of selection clears it.
+    @State private var selectedByClick: FileItem.ID?
     @State private var isCreatingNewFile = false
     @State private var newItemName = "untitled"
     @State private var renamingItem: FileItem?
@@ -99,6 +103,9 @@ struct FileBrowserPanel: View {
     @State private var showUnifiedQueue = false
     @FocusState private var isNewItemFocused: Bool
     @FocusState private var isRenameFocused: Bool
+    /// Build 29 — his bug, 2026-09-28: after Escape closed a rename, the arrows only bonked,
+    /// because nothing gave the keyboard back to the list. Ending a rename now does.
+    @FocusState private var isListFocused: Bool
 
     // Arrow Key Sorting state
     /// Arrow Key Sorting lives in Accessibility now — one setting for both panes.
@@ -510,6 +517,7 @@ struct FileBrowserPanel: View {
                                         // "click click renames" (double-click still opens — this
                                         // handler only fires once the double-click window has passed).
                                         if selectedItems == [item.id], renamingItem == nil,
+                                           selectedByClick == item.id,
                                            let since = selectedSince,
                                            Date().timeIntervalSince(since) > NSEvent.doubleClickInterval {
                                             startRenaming(item: item)
@@ -519,12 +527,19 @@ struct FileBrowserPanel: View {
                                         selectedItems = [item.id]
                                         lastSelectedItem = item
                                         selectedSince = Date()
+                                        selectedByClick = item.id
                                     }
                                 }
                             }
                         }
                     }
                     .focusable()
+                    .focused($isListFocused)
+                    .onChange(of: selectedItems) { _, newValue in
+                        if let clicked = selectedByClick, newValue != [clicked] {
+                            selectedByClick = nil
+                        }
+                    }
                     .contextMenu {
                         if selectedItems.count > 1 {
                             Button("Open") {
@@ -1549,6 +1564,7 @@ struct FileBrowserPanel: View {
     private func cancelRename() {
         renamingItem = nil
         renameText = ""
+        isListFocused = true
     }
 
     private func selectRange(to item: FileItem) {
