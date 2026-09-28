@@ -127,6 +127,16 @@ struct InPaneMediaPlayer: View {
                         VideoPlayer(player: player)
                             .frame(maxWidth: .infinity)
                             .aspectRatio(16/9, contentMode: .fit)
+                            // Build 28 — his ask, 2026-09-28: tapping the video "should toggle
+                            // between play or pause, play if stopped pause if already playing."
+                            // A clear layer on top: Apple's video view handles its own clicks, so
+                            // a tap attached to it directly is not guaranteed to arrive. The layer
+                            // also covers Apple's hover controls; the app's own row stays below.
+                            .overlay {
+                                Color.clear
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { togglePlayPause() }
+                            }
                             .onAppear {
                                 // Coming back from minimized keeps whatever state it was
                                 // in — a paused video stays paused.
