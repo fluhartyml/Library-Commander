@@ -1016,23 +1016,39 @@ struct ContentView: View {
         let sourceFS = activeFocusedFileSystem
         let movingPaths = Set(sourceFiles.map(\.path))
         let nextPath = nextFilePath(after: movingPaths, in: sourceFS.files)
+        // Build 37 — DEBUG, his ask 2026-09-28: find which check stops the next-file highlight.
+        let dbg = FocusDebugLog.shared
+        let name: (String?) -> String = { $0.map { URL(fileURLWithPath: $0).lastPathComponent } ?? "none" }
+        dbg.note("[MOVE] start pane=\(pane) moving=\(sourceFiles.count) next=\(name(nextPath))")
 
         fileOps.start(.move,
                       sources: sourceFiles.map { URL(fileURLWithPath: $0.path) },
                       target: URL(fileURLWithPath: targetPath)) { _ in
+            dbg.note("[MOVE] finished; selection before clear=\((pane == .left ? selectedLeftItems : selectedRightItems).count)")
             // Only what THIS move took leaves the selection — another may be being picked.
             clearSelection(pane, of: sourceFiles)
-            guard let nextPath else { return }
+            guard let nextPath else { dbg.note("[MOVE] STOP: no next file"); return }
             sourceFS.loadFiles()
             // Only if the pane still shows that folder and nothing else was picked meanwhile.
             let stillEmpty = (pane == .left ? selectedLeftItems : selectedRightItems).isEmpty
-            guard stillEmpty, let next = sourceFS.files.first(where: { $0.path == nextPath }) else { return }
+            let found = sourceFS.files.contains { $0.path == nextPath }
+            dbg.note("[MOVE] after clear: selection=\((pane == .left ? selectedLeftItems : selectedRightItems).count) stillEmpty=\(stillEmpty) nextInList=\(found) listCount=\(sourceFS.files.count)")
+            guard stillEmpty, let next = sourceFS.files.first(where: { $0.path == nextPath }) else {
+                dbg.note("[MOVE] STOP: a check failed"); return
+            }
             if pane == .left {
                 selectedLeftItem = next
                 selectedLeftItems = [next.id]
             } else {
                 selectedRightItem = next
                 selectedRightItems = [next.id]
+            }
+            dbg.note("[MOVE] highlighted \(next.name)")
+            // Something may clear it afterwards — look again a moment later.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                let now = pane == .left ? selectedLeftItems : selectedRightItems
+                let still = sourceFS.files.first { now.contains($0.id) }?.name ?? "nothing"
+                dbg.note("[MOVE] 1s later: selection=\(now.count) → \(still)")
             }
         }
     }

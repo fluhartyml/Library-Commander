@@ -63,7 +63,11 @@ final class FocusDebugLog {
     func start() {}
 
     private func record(_ what: String, window: NSWindow?) {
-        let line = "[FOCUS] \(what) → \(Self.describe(window?.firstResponder))"
+        note("[FOCUS] \(what) → \(Self.describe(window?.firstResponder))")
+    }
+
+    /// Build 37 — DEBUG: any line, same console + system log.
+    func note(_ line: String) {
         print(line)
         log.notice("\(line, privacy: .public)")
     }
