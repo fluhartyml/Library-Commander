@@ -516,7 +516,11 @@ struct FileBrowserPanel: View {
                                         // that is ALREADY the only selection renames it. His ask:
                                         // "click click renames" (double-click still opens — this
                                         // handler only fires once the double-click window has passed).
-                                        if selectedItems == [item.id], renamingItem == nil,
+                                        // Build 31 — his bug, 2026-09-28: ONE click in the pane
+                                        // without focus opened a rename, because that video was
+                                        // already its selection. A click in the unfocused pane
+                                        // only focuses it — Finder's first click does the same.
+                                        if isFocused, selectedItems == [item.id], renamingItem == nil,
                                            selectedByClick == item.id,
                                            let since = selectedSince,
                                            Date().timeIntervalSince(since) > NSEvent.doubleClickInterval {
@@ -528,6 +532,10 @@ struct FileBrowserPanel: View {
                                         lastSelectedItem = item
                                         selectedSince = Date()
                                         selectedByClick = item.id
+                                        // Focus follows the click even when the selection did
+                                        // not change (onChange only fires on a change).
+                                        onFocus()
+                                        isListFocused = true
                                     }
                                 }
                             }
