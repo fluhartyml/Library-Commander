@@ -757,6 +757,16 @@ struct FileBrowserPanel: View {
                         }
                         return .handled
                     }
+                    // Build 34 — his ask, 2026-09-28: "delete key does command 8 or the equivilant
+                    // of right click select delete" · "file list only not when it is a back space".
+                    // This sits on the LIST, so it only hears Delete while the list has the
+                    // keyboard; a rename or new-name field keeps it as backspace.
+                    .onKeyPress(.delete) {
+                        if renamingItem != nil || isCreatingNewFolder || isCreatingNewFile { return .ignored }
+                        guard !selectedItems.isEmpty else { return .ignored }
+                        deleteSelectedItems()
+                        return .handled
+                    }
                     // Arrow Key Sorting ARROW KEYS
                     .onKeyPress(.leftArrow) {
                         if renamingItem != nil { return .ignored }
