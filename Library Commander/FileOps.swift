@@ -46,14 +46,22 @@ nonisolated enum FileOps {
         folder.appendingPathComponent(item.lastPathComponent)
     }
 
-    /// The checks that come BEFORE anything is written. REM  Run first so a refusal costs nothing.
-    static func check(_ item: URL, into folder: URL) -> Failure? {
+    /// Refusals that no answer can fix: into itself, or into the folder it is already in.
+    static func refusal(_ item: URL, into folder: URL) -> Failure? {
         let src = item.standardizedFileURL.resolvingSymlinksInPath().path
         let dst = folder.standardizedFileURL.resolvingSymlinksInPath().path
         if dst == src || dst.hasPrefix(src.hasSuffix("/") ? src : src + "/") { return .intoItself }
         if item.deletingLastPathComponent().standardizedFileURL.resolvingSymlinksInPath().path == dst {
             return .sameFolder
         }
+        return nil
+    }
+
+    /// The checks that come BEFORE anything is written. REM  Run first so a refusal costs nothing.
+    /// REM  A name clash is reported here; the quick-access bar goes through TransferEngine,
+    /// REM  which ASKS about a clash instead (build 57).
+    static func check(_ item: URL, into folder: URL) -> Failure? {
+        if let refusal = refusal(item, into: folder) { return refusal }
         let target = destination(of: item, in: folder)
         if FileManager.default.fileExists(atPath: target.path) {
             return .alreadyThere(identical: identical(item, target))

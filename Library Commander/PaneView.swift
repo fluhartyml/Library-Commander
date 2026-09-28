@@ -25,6 +25,8 @@ struct PaneView: View {
     let report: (String, Bool) -> Void
     /// Handed in so the Rename sheet can run the rename and report it (CommanderModel).
     let finishRename: (String) -> Bool
+    /// Runs a quick-access command (⌘ + number) — the right-click menu uses the same commands.
+    let command: (Int) -> Void
 
     // REM  His text size (Accessibility…), for the few places that set a font of their own.
     @AppStorage(TextSize.key) private var textSize = TextSize.standard
@@ -383,6 +385,14 @@ struct PaneView: View {
                     }
                 }
             }
+            // REM  RIGHT-CLICK ON EMPTY SPACE — the old app's: this folder in Finder, and New Folder.
+            .contextMenu {
+                if !pane.showingDrives, let here = pane.currentURL {
+                    Button("Show This Folder in Finder") { NSWorkspace.shared.activateFileViewerSelecting([here]) }
+                    Divider()
+                    Button("New Folder") { onActivate(); command(7) }
+                }
+            }
             // Keep the highlighted row on screen as the arrows move it.
             .onChange(of: pane.selectedID) { _, id in
                 guard let id else { return }
@@ -446,6 +456,38 @@ struct PaneView: View {
         .onTapGesture {
             onActivate()
             pane.selectedID = entry.id
+        }
+        .contextMenu { rowMenu(entry) }
+    }
+
+    // REM  RIGHT-CLICK ON A ROW (build 57) — his ask: "we also need the right click back". The old
+    // REM  app's FILE items only; media items (Scan for Media, Playlists, Shazam) return when those
+    // REM  features do — his order: "file management first the media bells and whistles come after".
+    // REM  Every item runs the SAME command as its ⌘-number key, so the two can never disagree.
+    // REM  Right-clicking a row highlights it and makes this pane the source first, as Finder does,
+    // REM  so the command acts on the row he clicked.
+    @ViewBuilder
+    private func rowMenu(_ entry: FileEntry) -> some View {
+        let pick = { onActivate(); pane.selectedID = entry.id }
+        if entry.drive != nil {
+            Button("Open") { pick(); pane.openSelected() }
+        } else {
+            if entry.isFolder && !entry.isPackage {
+                Button("Open") { pick(); pane.openSelected() }
+            } else {
+                Button("Open") { pick(); command(4) }
+            }
+            Button("Quick Look") { pick(); command(3) }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
+            Divider()
+            Button("Rename…") { pick(); command(9) }
+            Divider()
+            Button("Copy to Other Pane") { pick(); command(5) }
+            Button("Move to Other Pane") { pick(); command(6) }
+            Divider()
+            Button("Move to Trash") { pick(); command(8) }
+            Divider()
+            Button("New Folder") { onActivate(); command(7) }
         }
     }
 

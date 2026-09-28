@@ -27,13 +27,15 @@ struct ContentView: View {
                          isActive: commander.activeSide == .left,
                          onActivate: { commander.activeSide = .left },
                          report: { commander.report($0, problem: $1) },
-                         finishRename: { commander.finishRename(to: $0) })
+                         finishRename: { commander.finishRename(to: $0) },
+                         command: { commander.runQuickKey($0) })
                 Divider()
                 PaneView(pane: commander.right,
                          isActive: commander.activeSide == .right,
                          onActivate: { commander.activeSide = .right },
                          report: { commander.report($0, problem: $1) },
-                         finishRename: { commander.finishRename(to: $0) })
+                         finishRename: { commander.finishRename(to: $0) },
+                         command: { commander.runQuickKey($0) })
             }
             Divider()
             quickBar
@@ -43,6 +45,10 @@ struct ContentView: View {
         // ⌘3 View — Quick Look, the same preview Finder's space bar gives.
         .quickLookPreview(Binding(get: { commander.quickLookURL },
                                   set: { commander.quickLookURL = $0 }))
+        // REM  THE CLASH SHEET (build 57): a copy or move waits here while he decides.
+        .sheet(item: Binding(get: { commander.pendingClash }, set: { _ in })) { clash in
+            ClashSheet(clash: clash) { choice, all in commander.answer(choice, applyToAll: all) }
+        }
         .frame(minWidth: 900, minHeight: 500)
         .background(WindowFrameSaver(name: "LibraryCommanderMain"))
         .onAppear {
@@ -93,6 +99,9 @@ struct ContentView: View {
             // REM  climbing once a second — proof it is alive (his rule).
             if commander.busy != nil {
                 ProgressView().controlSize(.regular).scaleEffect(0.6).frame(width: 22, height: 22)
+                if let count = commander.busyCount, count > 0 {
+                    Text("\(count) done").foregroundStyle(.secondary).monospacedDigit()
+                }
                 if let bytes = commander.busyBytes, bytes.total > 0 {
                     Text("\(ByteCountFormatter.string(fromByteCount: bytes.done, countStyle: .file)) of \(ByteCountFormatter.string(fromByteCount: bytes.total, countStyle: .file))")
                         .foregroundStyle(.secondary)

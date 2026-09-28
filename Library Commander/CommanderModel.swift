@@ -228,6 +228,7 @@ final class CommanderModel {
 
     /// ⌘5 copy / ⌘6 move — the highlighted row of the source into the target.
     /// REM  The work runs off the main thread, so the window stays live during a long copy.
+    /// REM  A name clash stops and ASKS (build 57) — see TransferEngine.swift for his rulings.
     func transfer(move: Bool) {
         let verb = move ? "move" : "copy"
         guard notBusy(), let item = highlightedItem(for: verb) else { return }
@@ -239,32 +240,87 @@ final class CommanderModel {
         let index = source.selectedIndex
         let targetName = FileManager.default.displayName(atPath: target.url.path)
         let landing = FileOps.destination(of: item.url, in: target.url)
+        // REM  Refuse the impossible at once (into itself, same folder) — no sheet, no spinner.
+        if let refusal = FileOps.refusal(item.url, into: target.url) {
+            report(Self.explain(refusal, name: item.name, verb: verb, targetName: targetName), problem: true)
+            return
+        }
 
         busy = "\(move ? "Moving" : "Copying") “\(item.name)” to \(targetName)…"
         busyBytes = nil
+        busyCount = nil
         report(busy!)
-        startProgress(item: item, landing: landing)
+        // A single file with nothing in the way: a byte count that climbs.
+        if !FileManager.default.fileExists(atPath: landing.path) { startProgress(item: item, landing: landing) }
 
+        let engine = TransferEngine(move: move,
+                                    ask: { clash in await self.ask(clash) },
+                                    progress: { done in await MainActor.run { if item.isFolder { self.busyCount = done } } })
         let from = item.url, into = target.url
         Task.detached(priority: .userInitiated) {
-            let outcome: Result<URL, Error>
-            do {
-                outcome = .success(move ? try FileOps.move(from, into: into) : try FileOps.copy(from, into: into))
-            } catch {
-                outcome = .failure(error)
-            }
+            let outcome: Result<TransferSummary, Error>
+            do { outcome = .success(try await engine.run(from, into: into)) }
+            catch { outcome = .failure(error) }
             await MainActor.run {
                 self.stopProgress()
+                // REM  Whatever happened, both panes show the disk as it is now.
+                let itemGone = !FileManager.default.fileExists(atPath: from.path)
+                if move && itemGone { source.reloadAfterRemoving(rowAt: index) } else { source.reload() }
+                self.destinationPane.reload()
                 switch outcome {
-                case .success:
-                    if move { source.reloadAfterRemoving(rowAt: index) } else { source.reload() }
-                    self.destinationPane.reload()
-                    self.report("\(move ? "Moved" : "Copied") “\(item.name)” to \(targetName).")
+                case .success(let summary):
+                    self.lastTransfer = summary
+                    self.report(Self.describe(summary, name: item.name, move: move, targetName: targetName),
+                                problem: summary.stopped)
                 case .failure(let error):
                     self.report(Self.explain(error, name: item.name, verb: verb, targetName: targetName), problem: true)
                 }
             }
         }
+    }
+
+    /// The last copy or move's counts. REM  Kept so tests can take replaced files back out of the Trash.
+    private(set) var lastTransfer: TransferSummary?
+
+    /// Items finished so far, while a FOLDER is copying or moving.
+    private(set) var busyCount: Int?
+
+    // MARK: - The clash question
+
+    /// The clash the sheet is showing. nil = no sheet.
+    private(set) var pendingClash: Clash?
+    @ObservationIgnored private var clashContinuation: CheckedContinuation<ClashAnswer, Never>?
+
+    /// The engine waits here while he decides.
+    func ask(_ clash: Clash) async -> ClashAnswer {
+        await withCheckedContinuation { continuation in
+            clashContinuation = continuation
+            pendingClash = clash
+        }
+    }
+
+    /// The sheet's buttons come here. Stop (or Escape) ends the job; nothing already done is undone.
+    func answer(_ choice: ClashChoice, applyToAll: Bool) {
+        pendingClash = nil
+        clashContinuation?.resume(returning: ClashAnswer(choice: choice, applyToAll: applyToAll))
+        clashContinuation = nil
+    }
+
+    /// The status bar's words for a finished copy or move.
+    static func describe(_ s: TransferSummary, name: String, move: Bool, targetName: String) -> String {
+        let done = move ? "moved" : "copied"
+        if !s.stopped, s.total == 1, s.skipped == 0, s.replaced == 0, s.keptBoth == 0, s.removedFromSource == 0 {
+            return "\(move ? "Moved" : "Copied") “\(name)” to \(targetName)."
+        }
+        var parts: [String] = []
+        if s.placed > 0 { parts.append("\(s.placed) \(done)") }
+        if s.replaced > 0 { parts.append("\(s.replaced) replaced") }
+        if s.keptBoth > 0 { parts.append("\(s.keptBoth) kept both") }
+        if s.removedFromSource > 0 { parts.append("\(s.removedFromSource) duplicate\(s.removedFromSource == 1 ? "" : "s") removed from the source") }
+        if s.skipped > 0 { parts.append("\(s.skipped) skipped") }
+        if parts.isEmpty { parts.append("nothing changed") }
+        let head = s.stopped ? "Stopped “\(name)” → \(targetName)" : "“\(name)” → \(targetName)"
+        return head + ": " + parts.joined(separator: ", ") + "."
     }
 
     // MARK: - Helpers for the commands
@@ -306,6 +362,7 @@ final class CommanderModel {
         progressTimer = nil
         busy = nil
         busyBytes = nil
+        busyCount = nil
     }
 
     /// A failure, in words for the status bar.
