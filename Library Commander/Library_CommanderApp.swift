@@ -27,5 +27,11 @@ struct Library_CommanderApp: App {
                 // The build number, readable off the screen — see BuildStamp.swift.
                 .navigationTitle("Library Commander — build \(BuildStamp.number)")
         }
+        .commands {
+            // About names the exact build and credits the file commanders that inspired it.
+            CommandGroup(replacing: .appInfo) {
+                Button("About Library Commander") { AboutPanel.show() }
+            }
+        }
     }
 }
