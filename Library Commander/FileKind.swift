@@ -20,19 +20,20 @@ enum FileKind: String, CaseIterable {
     case folder, video, audio, image, pdf, text, code, archive, diskImage, app, package, other
 
     /// Decides the kind from the name alone — no disk read, so a big folder lists fast.
-    static func of(name: String, isFolder: Bool) -> FileKind {
+    static func of(name: String, isFolder: Bool, isPackage: Bool = false) -> FileKind {
         let ext = (name as NSString).pathExtension.lowercased()
-        // REM  A folder with a known package extension (.app, .photoslibrary) is shown as what
-        // REM  it is; Finder does the same. It still opens like a folder here — a commander may
-        // REM  look inside.
-        guard let type = ext.isEmpty ? nil : UTType(filenameExtension: ext) else {
-            return isFolder ? .folder : .other
-        }
+        let type = ext.isEmpty ? nil : UTType(filenameExtension: ext)
+        // REM  A PACKAGE is a folder macOS shows as one item (.app, .photoslibrary). Finder does the
+        // REM  same here. It still opens like a folder in this app — a commander may look inside.
+        // REM  ⚠️ The NAME cannot say it is a package: macOS types "photoslibrary" as unknown from
+        // REM  the extension alone (measured 2026-09-28). Only the disk knows, so `isPackage`
+        // REM  comes from the listing's .isPackageKey — the same answer Finder uses.
         if isFolder {
-            if type.conforms(to: .application) { return .app }
-            if type.conforms(to: .package) { return .package }
+            if type?.conforms(to: .application) == true { return .app }
+            if isPackage { return .package }
             return .folder
         }
+        guard let type else { return .other }
         // REM  Order matters: the more specific types are checked first (PDF before "document",
         // REM  source code before plain text).
         if type.conforms(to: .movie) || type.conforms(to: .video) { return .video }

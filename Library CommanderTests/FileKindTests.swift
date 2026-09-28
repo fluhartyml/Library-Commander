@@ -30,7 +30,9 @@ struct FileKindTests {
     @Test func foldersAndPackages() {
         #expect(FileKind.of(name: "Music Videos", isFolder: true) == .folder)
         #expect(FileKind.of(name: "Safari.app", isFolder: true) == .app)
-        #expect(FileKind.of(name: "Photos Library.photoslibrary", isFolder: true) == .package)
+        #expect(FileKind.of(name: "Photos Library.photoslibrary", isFolder: true, isPackage: true) == .package)
+        // REM  The name alone cannot say it is a package — the disk must (see FileKind.of).
+        #expect(FileKind.of(name: "Photos Library.photoslibrary", isFolder: true) == .folder)
         #expect(FileKind.of(name: "v1.2 backups", isFolder: true) == .folder)   // a dot in a folder name is not a type
     }
 
