@@ -54,7 +54,20 @@ struct PaneView: View {
 
     @ViewBuilder
     private var content: some View {
-        if pane.currentURL == nil {
+        if pane.currentURL == nil, let missing = pane.missingRootPath {
+            // The saved folder is not reachable — usually a drive that is not connected.
+            // Its place is kept; it comes back by itself when the drive mounts.
+            VStack(spacing: 12) {
+                Spacer()
+                Text("“\(FileManager.default.displayName(atPath: missing))” is not connected.")
+                Text(missing).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                Text("It will come back here when it is.").foregroundStyle(.secondary)
+                Button("Choose a Different Folder…") { chooseFolder() }
+                Spacer()
+            }
+            .padding(.horizontal)
+            .frame(maxWidth: .infinity)
+        } else if pane.currentURL == nil {
             VStack(spacing: 12) {
                 Spacer()
                 Text("Choose a folder or drive to show here.")

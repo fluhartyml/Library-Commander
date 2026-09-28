@@ -7,9 +7,12 @@
 // REM  FILE COMMANDER FIRST, MEDIA SECOND — see Library_CommanderApp.swift.
 // REM
 // REM  Two panes side by side, and the build line along the bottom.
+// REM  At launch each pane goes back to its saved place; when a drive mounts, a pane
+// REM  waiting for it comes back. The window's size and position are saved too.
 //
 
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @State private var commander = CommanderModel()
@@ -35,12 +38,34 @@ struct ContentView: View {
                 .padding(.vertical, 4)
         }
         .frame(minWidth: 900, minHeight: 500)
+        .background(WindowFrameSaver(name: "LibraryCommanderMain"))
         .onAppear {
+            commander.restore()
             let router = KeyRouter(commander: commander)
             router.start()
             keyRouter = router
         }
+        // A drive plugged in — a pane waiting for it comes back to its saved place.
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in
+            commander.restore()
+        }
     }
+}
+
+/// Saves the window's size and position under a name, and puts it back at launch.
+// REM  Everything persists — the window included (his rule, 2026-09-28).
+private struct WindowFrameSaver: NSViewRepresentable {
+    let name: String
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            view.window?.setFrameAutosaveName(name)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 #Preview {

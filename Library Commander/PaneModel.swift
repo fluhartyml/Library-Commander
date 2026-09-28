@@ -7,6 +7,10 @@
 // REM  One pane: the folder it shows, what is in it, and which row is highlighted.
 // REM  Plain Swift with no views in it, so every rule here can be tested
 // REM  (Library CommanderTests/PaneModelTests.swift). Step one of the rebuild, 2026-09-28.
+// REM
+// REM  Step two: the pane's place — drive, folder, highlight — is SAVED ON EVERY CHANGE and
+// REM  RESTORED AT LAUNCH (his rule; see StateStore.swift). A drive that is not connected
+// REM  keeps its saved place and comes back when it mounts; it is never quietly forgotten.
 //
 
 import Foundation
@@ -25,16 +29,30 @@ struct FileEntry: Identifiable, Hashable {
 
 @Observable
 final class PaneModel {
+    /// "left" or "right" — the name its saved state is filed under.
+    let side: String
+    @ObservationIgnored private let store: StateStore
+
     /// The folder he chose with Choose Folder…. The sandbox only lets the app into what he
     /// picks, so the pane never goes above this one.
     private(set) var rootURL: URL?
     /// The folder the pane is showing — the root or somewhere inside it.
     private(set) var currentURL: URL?
     private(set) var entries: [FileEntry] = []
-    /// The highlighted row, by path. nil = nothing highlighted.
-    var selectedID: FileEntry.ID?
+    /// The highlighted row, by path. nil = nothing highlighted. Saved on every change.
+    var selectedID: FileEntry.ID? {
+        didSet { store.save(selectedPath: selectedID, for: side) }
+    }
     /// Shown in the pane when a folder cannot be read.
     private(set) var errorMessage: String?
+    /// Set when the saved folder is not reachable — usually a drive that is not connected.
+    /// Its saved place is kept; `restore()` tries again (the pane calls it when a drive mounts).
+    private(set) var missingRootPath: String?
+
+    init(side: String, store: StateStore = .shared) {
+        self.side = side
+        self.store = store
+    }
 
     var selectedIndex: Int? {
         guard let selectedID else { return nil }
@@ -50,11 +68,49 @@ final class PaneModel {
         return currentURL.standardizedFileURL.path != rootURL.standardizedFileURL.path
     }
 
+    // MARK: - Saved place
+
+    /// At launch (and when a drive mounts): back to the saved folder and highlight.
+    /// Does nothing if the pane is already showing its folder.
+    func restore() {
+        guard currentURL == nil else { return }
+        let place = store.place(for: side)
+        guard let data = place.rootBookmark else { return }   // never chosen — stays empty
+
+        guard let (root, stale) = StateStore.resolve(data),
+              FileManager.default.fileExists(atPath: root.path) else {
+            missingRootPath = place.rootPath
+            return
+        }
+        missingRootPath = nil
+        rootURL = root
+        if stale { store.save(root: StateStore.bookmark(for: root), rootPath: root.path, for: side) }
+
+        // The saved folder, if it still exists and is inside the root; else the root.
+        var folder = root
+        if let saved = place.currentPath, isInsideRoot(saved),
+           FileManager.default.fileExists(atPath: saved) {
+            folder = URL(fileURLWithPath: saved)
+        }
+        show(folder: folder, highlight: place.selectedPath)
+    }
+
+    private func isInsideRoot(_ path: String) -> Bool {
+        guard let rootURL else { return false }
+        let root = rootURL.standardizedFileURL.path
+        let p = URL(fileURLWithPath: path).standardizedFileURL.path
+        return p == root || p.hasPrefix(root.hasSuffix("/") ? root : root + "/")
+    }
+
     // MARK: - Folders
 
-    /// A new root, chosen by him. Shows it and highlights the first row.
+    /// A new root, chosen by him. Shows it, highlights the first row, and saves the permission.
     func choose(root: URL) {
+        rootURL?.stopAccessingSecurityScopedResource()
+        _ = root.startAccessingSecurityScopedResource()
         rootURL = root
+        missingRootPath = nil
+        store.save(root: StateStore.bookmark(for: root), rootPath: root.path, for: side)
         show(folder: root, highlight: nil)
     }
 
@@ -79,6 +135,7 @@ final class PaneModel {
 
     private func show(folder: URL, highlight: FileEntry.ID?) {
         currentURL = folder
+        store.save(currentPath: folder.path, for: side)
         do {
             entries = try Self.listing(of: folder)
             errorMessage = nil

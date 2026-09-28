@@ -1,0 +1,97 @@
+//
+//  StateStore.swift
+//  Library Commander
+//
+// REM  FILE COMMANDER FIRST, MEDIA SECOND — see Library_CommanderApp.swift.
+// REM
+// REM  EVERYTHING PERSISTS. His words, 2026-09-28: "i would like every setting and drive or
+// REM  folder state persistant wether you open or close the app multiple times."
+// REM  So every setting and every pane's place is saved the moment it changes, and read back
+// REM  at launch. A NEW SETTING IS BORN PERSISTENT — never a plain @State default that
+// REM  resets on launch (the old app's Autoplay and Next did exactly that, and it was a bug).
+// REM
+// REM  Drives and folders are saved as SECURITY-SCOPED BOOKMARKS. The sandbox only lets the app
+// REM  into what he picked; a bookmark is the saved permission, so he is not asked again.
+// REM  (Same method the old app used from build 20 on; it worked on his Mac.)
+//
+
+import Foundation
+
+/// Where saved state lives. The app uses UserDefaults.standard; tests pass their own.
+final class StateStore {
+    static let shared = StateStore(defaults: .standard)
+    let defaults: UserDefaults
+
+    init(defaults: UserDefaults) {
+        self.defaults = defaults
+    }
+
+    // MARK: - Pane places
+
+    struct PanePlace {
+        /// The saved permission for the folder he chose.
+        var rootBookmark: Data?
+        /// The chosen folder's path, kept as plain text so a missing drive can still be named.
+        var rootPath: String?
+        /// The folder the pane was showing.
+        var currentPath: String?
+        /// The highlighted row.
+        var selectedPath: String?
+    }
+
+    private func key(_ side: String, _ name: String) -> String { "pane.\(side).\(name)" }
+
+    func place(for side: String) -> PanePlace {
+        PanePlace(rootBookmark: defaults.data(forKey: key(side, "rootBookmark")),
+                  rootPath: defaults.string(forKey: key(side, "rootPath")),
+                  currentPath: defaults.string(forKey: key(side, "currentPath")),
+                  selectedPath: defaults.string(forKey: key(side, "selectedPath")))
+    }
+
+    func save(root bookmark: Data?, rootPath: String, for side: String) {
+        defaults.set(bookmark, forKey: key(side, "rootBookmark"))
+        defaults.set(rootPath, forKey: key(side, "rootPath"))
+    }
+
+    func save(currentPath: String?, for side: String) {
+        defaults.set(currentPath, forKey: key(side, "currentPath"))
+    }
+
+    func save(selectedPath: String?, for side: String) {
+        defaults.set(selectedPath, forKey: key(side, "selectedPath"))
+    }
+
+    // MARK: - Active pane
+
+    var activeSideIsRight: Bool {
+        get { defaults.bool(forKey: "activeSideIsRight") }
+        set { defaults.set(newValue, forKey: "activeSideIsRight") }
+    }
+
+    // MARK: - Bookmarks
+
+    /// Read/write permission first; read-only as a fallback (a drive he can only read).
+    /// A plain bookmark is the last resort, for a folder the app can already reach.
+    static func bookmark(for url: URL) -> Data? {
+        (try? url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil))
+        ?? (try? url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+                                  includingResourceValuesForKeys: nil, relativeTo: nil))
+        ?? (try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil))
+    }
+
+    /// Opens a saved permission. nil = the folder is not reachable right now (drive not
+    /// connected, folder renamed away) — the caller KEEPS the bookmark for next time.
+    static func resolve(_ data: Data) -> (url: URL, stale: Bool)? {
+        var stale = false
+        if let url = try? URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI],
+                              relativeTo: nil, bookmarkDataIsStale: &stale) {
+            _ = url.startAccessingSecurityScopedResource()
+            return (url, stale)
+        }
+        if let url = try? URL(resolvingBookmarkData: data, options: [.withoutUI],
+                              relativeTo: nil, bookmarkDataIsStale: &stale) {
+            return (url, stale)
+        }
+        return nil
+    }
+}
