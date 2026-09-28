@@ -130,9 +130,14 @@ struct InPaneMediaPlayer: View {
                             .onAppear {
                                 // Coming back from minimized keeps whatever state it was
                                 // in — a paused video stays paused.
+                                // Build 26 — his bug, 2026-09-28: "after first opening the app
+                                // the highlighted video started playing without notice." This
+                                // played unconditionally (written 2025-11-10, when the player
+                                // only opened to play); highlighting a video has shown it PAUSED
+                                // since 2025-11-22, so it has to ask shouldAutoPlay like audio does.
                                 if videoReturningFromMinimized {
                                     videoReturningFromMinimized = false
-                                } else {
+                                } else if shouldAutoPlay {
                                     player.play()
                                     isCurrentlyPlaying = true
                                 }
