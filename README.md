@@ -4,6 +4,12 @@ A two-pane file commander for the Mac. **A file commander first, and a media org
 
 Rebuilt from Hello World on 2026-09-28 (build 38). Everything before that is on the tag `archive-build-37`.
 
+## Links
+
+- Michael Fluharty: <https://fluharty.me>
+- Support: <https://fluharty.me/support/librarycommander>
+- Privacy: <https://fluharty.me/privacy>
+
 ## Acknowledgments
 
 Library Commander is inspired by:

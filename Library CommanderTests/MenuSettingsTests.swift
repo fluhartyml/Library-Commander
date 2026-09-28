@@ -45,3 +45,13 @@ struct MenuSettingsTests {
         #expect(PaneModel(side: "left", store: store).sortKey == .size)  // the toolbar reads the same
     }
 }
+
+@MainActor
+struct LinksTests {
+    // REM  His exact addresses, 2026-09-28. If one changes, it changes on purpose.
+    @Test func hisThreeAddresses() {
+        #expect(Links.portfolio.absoluteString == "https://fluharty.me")
+        #expect(Links.support.absoluteString == "https://fluharty.me/support/librarycommander")
+        #expect(Links.privacy.absoluteString == "https://fluharty.me/privacy")
+    }
+}

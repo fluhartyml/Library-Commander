@@ -44,6 +44,14 @@ struct Library_CommanderApp: App {
             CommandGroup(after: .appSettings) {
                 OpenAccessibilityButton()
             }
+            // REM  THE HELP MENU — where Mac users look for support and privacy. His addresses,
+            // REM  2026-09-28 (Links.swift). Replaces the empty "Library Commander Help" item.
+            CommandGroup(replacing: .help) {
+                Link("Library Commander Support", destination: Links.support)
+                Link("Privacy Policy", destination: Links.privacy)
+                Divider()
+                Link("fluharty.me", destination: Links.portfolio)
+            }
         }
 
         Settings {

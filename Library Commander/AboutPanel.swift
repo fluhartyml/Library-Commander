@@ -48,6 +48,20 @@ enum AboutPanel {
         add("A file commander first, and a media organizer and player second.\n\n")
         add(BuildStamp.summary + "\n\n")
 
+        // REM  His web addresses (Links.swift) — clickable. Also in the Help menu.
+        func link(_ title: String, _ url: URL) {
+            var a = body
+            a[.link] = url
+            add(title + " ")
+            text.append(NSAttributedString(string: url.absoluteString.replacingOccurrences(of: "https://", with: ""),
+                                           attributes: a))
+            add("\n")
+        }
+        link("Michael Fluharty:", Links.portfolio)
+        link("Support:", Links.support)
+        link("Privacy:", Links.privacy)
+        add("\n")
+
         add("Inspired by\n", bold)
         add("Midnight Commander — started by Miguel de Icaza in 1994 and developed by its contributors. "
             + "Free software under the GNU General Public License, version 3 or later. midnight-commander.org\n\n")
