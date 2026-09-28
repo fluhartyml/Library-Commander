@@ -34,6 +34,11 @@ struct FileKindTests {
         #expect(FileKind.of(name: "v1.2 backups", isFolder: true) == .folder)   // a dot in a folder name is not a type
     }
 
+    @Test func pdfAndHiddenAreDifferentReds() {
+        #expect(FileKind.pdf.color == FileKind.pdfRed)
+        #expect(FileKind.pdfRed != FileKind.hiddenRed)
+    }
+
     @Test func videoKeepsTheOldPurple() {
         #expect(FileKind.video.color == .purple)
     }

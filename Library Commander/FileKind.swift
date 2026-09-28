@@ -73,7 +73,7 @@ enum FileKind: String, CaseIterable {
         case .video:     return .purple
         case .audio:     return .pink
         case .image:     return .green
-        case .pdf:       return .red
+        case .pdf:       return Self.pdfRed
         case .text:      return .gray
         case .code:      return .orange
         case .archive:   return .brown
@@ -83,4 +83,12 @@ enum FileKind: String, CaseIterable {
         case .other:     return .secondary
         }
     }
+
+    // REM  THE TWO REDS — his call, 2026-09-28: "how about adobe bright red and hidden file a
+    // REM  darker brick red?" PDF and hidden used to share one red, so a red document glyph could
+    // REM  mean either. Now they differ in brightness as well as shade.
+    /// PDF — Adobe's brand red, #FA0F00.
+    static let pdfRed = Color(red: 0xFA / 255, green: 0x0F / 255, blue: 0x00 / 255)
+    /// Hidden files and folders (dot names or macOS's hidden flag) — a darker brick red, #A63A2B.
+    static let hiddenRed = Color(red: 0xA6 / 255, green: 0x3A / 255, blue: 0x2B / 255)
 }

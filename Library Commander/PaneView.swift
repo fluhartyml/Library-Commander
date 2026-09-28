@@ -290,7 +290,7 @@ struct PaneView: View {
             // REM  HIDDEN = RED, his ask 2026-09-28: "i want hidden files and folder glyphs to be
             // REM  colored red." The glyph keeps its type's SHAPE; only the color says "hidden".
             Image(systemName: entry.kind.symbol)
-                .foregroundStyle(entry.isHidden ? Color.red : entry.kind.color)
+                .foregroundStyle(entry.isHidden ? FileKind.hiddenRed : entry.kind.color)
                 .frame(width: 26)
             Text(entry.name)
                 .lineLimit(1)
