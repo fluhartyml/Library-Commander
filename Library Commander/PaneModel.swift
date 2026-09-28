@@ -25,8 +25,26 @@ struct FileEntry: Identifiable, Hashable {
     let url: URL
     let name: String
     let isFolder: Bool
+    /// Bytes (0 for a folder) and last change — for sorting by size and date.
+    var size: Int64 = 0
+    var modified: Date? = nil
     // REM  What kind of file it is — picks the row's glyph and color (FileKind.swift).
     var kind: FileKind { FileKind.of(name: name, isFolder: isFolder) }
+}
+
+/// How a pane orders its rows. REM  Folders ALWAYS come first, whatever the order — a
+/// commander finds folders at the top.
+enum SortKey: String, CaseIterable, Identifiable {
+    case name, kind, date, size
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .name: return "Name"
+        case .kind: return "Kind"
+        case .date: return "Date Modified (newest first)"
+        case .size: return "Size (largest first)"
+        }
+    }
 }
 
 @Observable
@@ -51,9 +69,21 @@ final class PaneModel {
     /// Its saved place is kept; `restore()` tries again (the pane calls it when a drive mounts).
     private(set) var missingRootPath: String?
 
+    // REM  TOOLBAR SETTINGS — per pane, and SAVED (his rule: everything persists). Changing
+    // REM  either re-reads the folder at once, keeping the highlight on the same file.
+    var sortKey: SortKey {
+        didSet { store.save(sort: sortKey.rawValue, for: side); reload() }
+    }
+    var showHidden: Bool {
+        didSet { store.save(showHidden: showHidden, for: side); reload() }
+    }
+
     init(side: String, store: StateStore = .shared) {
         self.side = side
         self.store = store
+        // REM  Read in init, so these didSets do not fire (and do not re-save) at launch.
+        sortKey = SortKey(rawValue: store.sort(for: side) ?? "") ?? .name
+        showHidden = store.showHidden(for: side)
     }
 
     var selectedIndex: Int? {
@@ -198,7 +228,7 @@ final class PaneModel {
         currentURL = folder
         store.save(currentPath: folder.path, for: side)
         do {
-            entries = try Self.listing(of: folder)
+            entries = try Self.listing(of: folder, sort: sortKey, showHidden: showHidden)
             errorMessage = nil
         } catch {
             entries = []
@@ -213,19 +243,69 @@ final class PaneModel {
 
     /// Folders first, then files, each in Finder's name order (so "Track 2" comes before
     /// "Track 10"). Hidden files are left out.
-    static func listing(of folder: URL) throws -> [FileEntry] {
+    static func listing(of folder: URL, sort: SortKey = .name, showHidden: Bool = false) throws -> [FileEntry] {
+        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
         let urls = try FileManager.default.contentsOfDirectory(
             at: folder,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles])
+            includingPropertiesForKeys: keys,
+            options: showHidden ? [] : [.skipsHiddenFiles])
         let entries = urls.map { url in
-            let isFolder = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            return FileEntry(url: url, name: url.lastPathComponent, isFolder: isFolder)
+            let v = try? url.resourceValues(forKeys: Set(keys))
+            let isFolder = v?.isDirectory ?? false
+            return FileEntry(url: url, name: url.lastPathComponent, isFolder: isFolder,
+                             size: isFolder ? 0 : Int64(v?.fileSize ?? 0),
+                             modified: v?.contentModificationDate)
+        }
+        // REM  Finder's name order ("Track 2" before "Track 10") breaks every tie, so rows never
+        // REM  jump around between reloads.
+        let byName: (FileEntry, FileEntry) -> Bool = {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
         return entries.sorted { a, b in
             if a.isFolder != b.isFolder { return a.isFolder }
-            return a.name.localizedStandardCompare(b.name) == .orderedAscending
+            switch sort {
+            case .name:
+                return byName(a, b)
+            case .kind:
+                let ka = FileKind.allCases.firstIndex(of: a.kind)!, kb = FileKind.allCases.firstIndex(of: b.kind)!
+                return ka != kb ? ka < kb : byName(a, b)
+            case .date:
+                let da = a.modified ?? .distantPast, db = b.modified ?? .distantPast
+                return da != db ? da > db : byName(a, b)
+            case .size:
+                return a.size != b.size ? a.size > b.size : byName(a, b)
+            }
         }
+    }
+
+    // MARK: - New Folder
+
+    enum NewFolderResult: Equatable {
+        case created
+        case emptyName
+        /// A name macOS will not take in a folder name ("/" or ":").
+        case badName
+        case alreadyExists
+        case noFolder
+        case failed(String)
+    }
+
+    /// Makes a folder in the folder the pane is showing, then highlights it.
+    /// REM  Never overwrites: a name already in use is refused, not replaced.
+    func newFolder(named typed: String) -> NewFolderResult {
+        guard let currentURL else { return .noFolder }
+        let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return .emptyName }
+        guard !name.contains("/"), !name.contains(":") else { return .badName }
+        let url = currentURL.appendingPathComponent(name, isDirectory: true)
+        guard !FileManager.default.fileExists(atPath: url.path) else { return .alreadyExists }
+        do {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+        show(folder: currentURL, highlight: url.path)
+        return .created
     }
 
     // MARK: - Highlight

@@ -93,6 +93,13 @@ final class StateStore {
         return path.hasPrefix(prefix)
     }
 
+    // MARK: - Pane toolbar settings
+
+    func sort(for side: String) -> String? { defaults.string(forKey: key(side, "sort")) }
+    func save(sort: String, for side: String) { defaults.set(sort, forKey: key(side, "sort")) }
+    func showHidden(for side: String) -> Bool { defaults.bool(forKey: key(side, "showHidden")) }
+    func save(showHidden: Bool, for side: String) { defaults.set(showHidden, forKey: key(side, "showHidden")) }
+
     // MARK: - Active pane
 
     var activeSideIsRight: Bool {

@@ -26,10 +26,15 @@ struct PaneView: View {
 
     @State private var pathText = ""
     @State private var drives: [Drive] = []
+    @State private var askingNewFolderName = false
+    @State private var newFolderName = "untitled folder"
+
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            Divider()
+            toolbar
             Divider()
             content
             Divider()
@@ -127,6 +132,104 @@ struct PaneView: View {
         } else {
             report("Nothing opened — access was not granted.", true)
             pathText = pane.currentURL?.path ?? ""
+        }
+    }
+
+    // MARK: - Toolbar: Sort · New Folder · Refresh · Show Hidden
+
+    // REM  His ask, 2026-09-28: "a tool bar below the drive path and previous up folder bar" — one
+    // REM  per pane, under that pane's header. FILE TOOLS ONLY, because the app is a file commander
+    // REM  first; media tools come later and never crowd these out. Sort and Show Hidden are saved
+    // REM  per pane (everything persists).
+    private var toolbar: some View {
+        HStack(spacing: 12) {
+            Menu {
+                Picker("Sort by", selection: Binding(get: { pane.sortKey },
+                                                     set: { pane.sortKey = $0 })) {
+                    ForEach(SortKey.allCases) { key in Text(key.title).tag(key) }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                Label("Sort: \(pane.sortKey.title)", systemImage: "arrow.up.arrow.down")
+            }
+            .fixedSize()
+            .help("How this pane orders its files. Folders always come first.")
+
+            Button {
+                newFolderName = "untitled folder"
+                askingNewFolderName = true
+            } label: {
+                Label("New Folder", systemImage: "folder.badge.plus")
+            }
+            .disabled(pane.currentURL == nil)
+            .help("Make a folder here")
+
+            Button {
+                pane.reload()
+                report("Refreshed \(pane.currentURL?.lastPathComponent ?? "").", false)
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .disabled(pane.currentURL == nil)
+            .help("Read this folder again")
+
+            Button {
+                pane.showHidden.toggle()
+                report(pane.showHidden ? "Showing hidden files." : "Hiding hidden files.", false)
+            } label: {
+                Label(pane.showHidden ? "Hide Hidden" : "Show Hidden",
+                      systemImage: pane.showHidden ? "eye.fill" : "eye.slash")
+            }
+            .help("Show or hide files whose names start with a dot")
+
+            Spacer(minLength: 0)
+        }
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .sheet(isPresented: $askingNewFolderName) { newFolderSheet }
+    }
+
+    // REM  A sheet, so the name is typed into its own box. KeyRouter leaves the keys alone while
+    // REM  a sheet is up, so Return and the arrows belong to the name field here.
+    private var newFolderSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("New Folder").bold()
+            Text("in \(pane.currentURL?.path ?? "")")
+                .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            TextField("Folder name", text: $newFolderName)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(createNewFolder)
+            HStack {
+                Spacer()
+                Button("Cancel") { askingNewFolderName = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Create", action: createNewFolder)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 460)
+    }
+
+    private func createNewFolder() {
+        let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch pane.newFolder(named: name) {
+        case .created:
+            askingNewFolderName = false
+            report("Made the folder “\(name)”.", false)
+        case .emptyName:
+            report("A folder needs a name.", true)
+        case .badName:
+            report("A folder name cannot contain “/” or “:”.", true)
+        case .alreadyExists:
+            report("“\(name)” already exists here — nothing was changed.", true)
+        case .noFolder:
+            askingNewFolderName = false
+            report("Pick a drive first.", true)
+        case .failed(let why):
+            askingNewFolderName = false
+            report("Could not make “\(name)”: \(why)", true)
         }
     }
 
