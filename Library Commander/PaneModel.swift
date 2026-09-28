@@ -28,6 +28,8 @@ struct FileEntry: Identifiable, Hashable {
     /// Bytes (0 for a folder) and last change — for sorting by size and date.
     var size: Int64 = 0
     var modified: Date? = nil
+    /// Hidden by a leading dot OR by macOS's hidden flag (like ~/Library) — macOS's own check.
+    var isHidden: Bool = false
     // REM  What kind of file it is — picks the row's glyph and color (FileKind.swift).
     var kind: FileKind { FileKind.of(name: name, isFolder: isFolder) }
 }
@@ -244,7 +246,7 @@ final class PaneModel {
     /// Folders first, then files, each in Finder's name order (so "Track 2" comes before
     /// "Track 10"). Hidden files are left out.
     static func listing(of folder: URL, sort: SortKey = .name, showHidden: Bool = false) throws -> [FileEntry] {
-        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
+        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]
         let urls = try FileManager.default.contentsOfDirectory(
             at: folder,
             includingPropertiesForKeys: keys,
@@ -254,7 +256,8 @@ final class PaneModel {
             let isFolder = v?.isDirectory ?? false
             return FileEntry(url: url, name: url.lastPathComponent, isFolder: isFolder,
                              size: isFolder ? 0 : Int64(v?.fileSize ?? 0),
-                             modified: v?.contentModificationDate)
+                             modified: v?.contentModificationDate,
+                             isHidden: v?.isHidden ?? url.lastPathComponent.hasPrefix("."))
         }
         // REM  Finder's name order ("Track 2" before "Track 10") breaks every tie, so rows never
         // REM  jump around between reloads.

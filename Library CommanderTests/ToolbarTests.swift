@@ -60,6 +60,21 @@ struct ToolbarTests {
         #expect(names(pane).contains(".hidden"))
     }
 
+    @Test func hiddenRowsAreMarkedHidden_dotOrMacOSFlag() throws {
+        let pane = PaneModel(side: "left", store: makeStore())
+        let root = try makeFolder()
+        var flagged = root.appendingPathComponent("Folder")
+        var values = URLResourceValues()
+        values.isHidden = true
+        try flagged.setResourceValues(values)                              // hidden without a dot
+        pane.choose(root: root)
+        pane.showHidden = true
+        let hidden = Set(pane.entries.filter(\.isHidden).map(\.name))
+        #expect(hidden == [".hidden", "Folder"])
+        pane.showHidden = false
+        #expect(!names(pane).contains("Folder"))                           // the flag hides it too
+    }
+
     @Test func sortAndHiddenComeBackAfterReopening() throws {
         let store = makeStore()
         let first = PaneModel(side: "right", store: store)

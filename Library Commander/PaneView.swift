@@ -180,7 +180,7 @@ struct PaneView: View {
                 Label(pane.showHidden ? "Hide Hidden" : "Show Hidden",
                       systemImage: pane.showHidden ? "eye.fill" : "eye.slash")
             }
-            .help("Show or hide files whose names start with a dot")
+            .help("Show or hide hidden files and folders — a name starting with a dot, or hidden by macOS. Hidden ones show in red.")
 
             Spacer(minLength: 0)
         }
@@ -287,8 +287,10 @@ struct PaneView: View {
         let selected = entry.id == pane.selectedID
         return HStack(spacing: 8) {
             // REM  Glyph and color by file type — his ask, 2026-09-28. See FileKind.swift.
+            // REM  HIDDEN = RED, his ask 2026-09-28: "i want hidden files and folder glyphs to be
+            // REM  colored red." The glyph keeps its type's SHAPE; only the color says "hidden".
             Image(systemName: entry.kind.symbol)
-                .foregroundStyle(entry.kind.color)
+                .foregroundStyle(entry.isHidden ? Color.red : entry.kind.color)
                 .frame(width: 26)
             Text(entry.name)
                 .lineLimit(1)
