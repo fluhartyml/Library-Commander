@@ -72,6 +72,16 @@ final class StateStore {
         set { defaults.set(newValue, forKey: "grants") }
     }
 
+    /// Every granted path, for Settings…, in name order.
+    var grantPaths: [String] {
+        grants.keys.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    /// Forget a grant — only the saved permission. Nothing on disk is touched.
+    func removeGrant(_ path: String) {
+        grants[path] = nil
+    }
+
     func addGrant(_ url: URL) {
         guard let data = Self.bookmark(for: url) else { return }
         grants[url.standardizedFileURL.path] = data

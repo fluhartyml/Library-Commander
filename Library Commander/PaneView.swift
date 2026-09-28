@@ -24,6 +24,8 @@ struct PaneView: View {
     /// Sends a message to the status bar. `true` = a problem.
     let report: (String, Bool) -> Void
 
+    // REM  His text size (Accessibility…), for the few places that set a font of their own.
+    @AppStorage(TextSize.key) private var textSize = TextSize.standard
     @State private var pathText = ""
     @State private var drives: [Drive] = []
     @State private var askingNewFolderName = false
@@ -86,7 +88,7 @@ struct PaneView: View {
                 // (^).. — the same look as the old Library Commander's up button.
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up.circle.fill")
-                    Text("..").font(.system(size: 18, design: .monospaced))
+                    Text("..").font(.system(size: TextSize.clamped(textSize), design: .monospaced))
                 }
             }
             .disabled(!pane.canGoUp)

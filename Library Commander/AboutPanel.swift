@@ -30,13 +30,14 @@ enum AboutPanel {
     }
 
     private static var credits: NSAttributedString {
-        // His rule: nothing under 18 pt.
+        // His rule: nothing under 18 pt — unless HE sets a smaller size in Accessibility….
+        let size = CGFloat(TextSize.current)
         let body: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 18),
+            .font: NSFont.systemFont(ofSize: size),
             .foregroundColor: NSColor.labelColor,
         ]
         let bold: [NSAttributedString.Key: Any] = [
-            .font: NSFont.boldSystemFont(ofSize: 18),
+            .font: NSFont.boldSystemFont(ofSize: size),
             .foregroundColor: NSColor.labelColor,
         ]
         let text = NSMutableAttributedString()

@@ -21,7 +21,8 @@ enum PaneSide {
 final class CommanderModel {
     let left: PaneModel
     let right: PaneModel
-    @ObservationIgnored private let store: StateStore
+    // REM  Readable by Settings… (the list of granted drives and folders).
+    @ObservationIgnored let store: StateStore
 
     var activeSide: PaneSide {
         didSet { store.activeSideIsRight = activeSide == .right }

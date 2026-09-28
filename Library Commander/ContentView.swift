@@ -15,7 +15,8 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @State private var commander = CommanderModel()
+    // REM  Handed in by the app, so Settings… changes these same panes.
+    let commander: CommanderModel
     @State private var keyRouter: KeyRouter?
 
     var body: some View {
@@ -87,5 +88,5 @@ private struct WindowFrameSaver: NSViewRepresentable {
 }
 
 #Preview {
-    ContentView()
+    ContentView(commander: CommanderModel())
 }
