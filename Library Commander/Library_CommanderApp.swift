@@ -6,6 +6,14 @@
 //  Rebuilt from Hello World 2026-09-28, his word: "lets rebuild from scratch".
 //  Everything through build 37 is on the tag archive-build-37.
 //
+// REM ─────────────────────────────────────────────────────────────────────────────────────
+// REM  LIBRARY COMMANDER IS A FILE COMMANDER FIRST, AND A MEDIA ORGANIZER / PLAYER SECOND.
+// REM  His words, 2026-09-28: "media is secondary to file commanding."
+// REM  Every file command (select, open, move, delete…) must work on what is highlighted,
+// REM  whatever its type and whether or not anything is playing. Media features may never
+// REM  be the reason a file command fails. When the two conflict, file commanding wins.
+// REM ─────────────────────────────────────────────────────────────────────────────────────
+//
 
 import SwiftUI
 
