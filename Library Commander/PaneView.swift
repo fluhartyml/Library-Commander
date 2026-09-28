@@ -6,6 +6,9 @@
 // REM
 // REM  One pane on screen. Header, his layout and ORDER (2026-09-28): a DRIVE PICKER, then a PATH
 // REM  BOX he can type a path into, then the (^).. up-one-folder button. Then a plain list of what is in
+// REM  WHY THIS ORDER, his reasoning: "it causes the users eyes to start at the drive look at
+// REM  the path then up or previous" — the eye reads left to right from the widest place (the
+// REM  drive) to the exact place (the path) to where you can go next (up). Keep the order.
 // REM  the folder. The list does NOT take the keyboard — KeyRouter.swift drives it. A click
 // REM  highlights a row and makes this pane active; a double-click opens a folder.
 // REM  What happens (or why it could not) is told in the status bar at the bottom.
