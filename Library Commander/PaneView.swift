@@ -183,8 +183,9 @@ struct PaneView: View {
     private func row(_ entry: FileEntry) -> some View {
         let selected = entry.id == pane.selectedID
         return HStack(spacing: 8) {
-            Image(systemName: entry.isFolder ? "folder.fill" : "doc")
-                .foregroundStyle(entry.isFolder ? Color.blue : Color.secondary)
+            // REM  Glyph and color by file type — his ask, 2026-09-28. See FileKind.swift.
+            Image(systemName: entry.kind.symbol)
+                .foregroundStyle(entry.kind.color)
                 .frame(width: 26)
             Text(entry.name)
                 .lineLimit(1)

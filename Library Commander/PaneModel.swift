@@ -25,6 +25,8 @@ struct FileEntry: Identifiable, Hashable {
     let url: URL
     let name: String
     let isFolder: Bool
+    // REM  What kind of file it is — picks the row's glyph and color (FileKind.swift).
+    var kind: FileKind { FileKind.of(name: name, isFolder: isFolder) }
 }
 
 @Observable
