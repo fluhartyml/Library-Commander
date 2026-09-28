@@ -1614,6 +1614,17 @@ struct FileBrowserPanel: View {
         let fileName = sourceURL.lastPathComponent
         let destURL = URL(fileURLWithPath: otherPanePath).appendingPathComponent(fileName)
 
+        // Build 32 — found 2026-09-28 while tracing his arrow-key move: with both panes in the
+        // same folder and no folder highlighted opposite, the destination IS the source, the
+        // Arrow Key Sorting "replace" branch removes it, and the video is gone. Refuse instead.
+        // (⌘6 already refuses this in FileOperationEngine.)
+        if destURL.standardizedFileURL.path == sourceURL.standardizedFileURL.path {
+            toastMessage = "Not moved — it is already in that folder"
+            showToast = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { showToast = false }
+            return
+        }
+
         // Check if file exists at destination
         if fileManager.fileExists(atPath: destURL.path) {
             // Arrow Key Sorting: auto-replace without asking
