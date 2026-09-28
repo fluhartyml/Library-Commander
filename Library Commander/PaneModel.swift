@@ -36,6 +36,16 @@ struct FileEntry: Identifiable, Hashable {
     var kind: FileKind { FileKind.of(name: name, isFolder: isFolder, isPackage: isPackage) }
 }
 
+/// One line on screen: a file or folder, and how deep it sits under opened folders.
+/// REM  REVEAL, his ask 2026-09-28: "the folders should have a reveal to expand its contents below
+/// REM  so you dont need to open the folder, like the finder." depth 0 = the folder being shown,
+/// REM  1 = inside a revealed folder, and so on.
+struct Row: Identifiable, Hashable {
+    let entry: FileEntry
+    let depth: Int
+    var id: String { entry.id }
+}
+
 /// How a pane orders its rows. REM  Folders ALWAYS come first, whatever the order — a
 /// commander finds folders at the top.
 enum SortKey: String, CaseIterable, Identifiable {
@@ -62,7 +72,14 @@ final class PaneModel {
     private(set) var rootURL: URL?
     /// The folder the pane is showing — the root or somewhere inside it.
     private(set) var currentURL: URL?
+    /// What is in the folder being shown — the top level only.
     private(set) var entries: [FileEntry] = []
+    /// Every line on screen: `entries` with the contents of each revealed folder under it.
+    /// REM  The highlight, the arrows and "open" all work on ROWS, so a file inside a revealed
+    /// REM  folder is highlighted, stepped through and opened exactly like a top-level one.
+    private(set) var rows: [Row] = []
+    /// Folders whose contents are revealed, by path. Saved (everything persists).
+    private(set) var revealed: Set<String> = []
     /// The highlighted row, by path. nil = nothing highlighted. Saved on every change.
     var selectedID: FileEntry.ID? {
         didSet { store.save(selectedPath: selectedID, for: side) }
@@ -88,15 +105,16 @@ final class PaneModel {
         // REM  Read in init, so these didSets do not fire (and do not re-save) at launch.
         sortKey = SortKey(rawValue: store.sort(for: side) ?? "") ?? .name
         showHidden = store.showHidden(for: side)
+        revealed = Set(store.revealed(for: side))
     }
 
     var selectedIndex: Int? {
         guard let selectedID else { return nil }
-        return entries.firstIndex { $0.id == selectedID }
+        return rows.firstIndex { $0.id == selectedID }
     }
 
     var selectedEntry: FileEntry? {
-        selectedIndex.map { entries[$0] }
+        selectedIndex.map { rows[$0].entry }
     }
 
     var canGoUp: Bool {
@@ -238,10 +256,11 @@ final class PaneModel {
             entries = []
             errorMessage = error.localizedDescription
         }
-        if let highlight, entries.contains(where: { $0.id == highlight }) {
+        rebuildRows()
+        if let highlight, rows.contains(where: { $0.id == highlight }) {
             selectedID = highlight
         } else {
-            selectedID = entries.first?.id
+            selectedID = rows.first?.id
         }
     }
 
@@ -319,9 +338,57 @@ final class PaneModel {
     /// ↑ is -1, ↓ is +1. Stops at the first and last rows — it does not wrap around.
     /// With nothing highlighted, any move highlights the first row.
     func moveSelection(by offset: Int) {
-        guard !entries.isEmpty else { selectedID = nil; return }
-        guard let index = selectedIndex else { selectedID = entries.first?.id; return }
-        let target = min(max(index + offset, 0), entries.count - 1)
-        selectedID = entries[target].id
+        guard !rows.isEmpty else { selectedID = nil; return }
+        guard let index = selectedIndex else { selectedID = rows.first?.id; return }
+        let target = min(max(index + offset, 0), rows.count - 1)
+        selectedID = rows[target].id
+    }
+
+    // MARK: - Reveal (Finder's disclosure triangle)
+
+    // REM  HIS RULE FOR THE HIGHLIGHT, 2026-09-28: the folder "should stay highlighted unless the
+    // REM  mouse selects a different folder." So revealing or hiding a folder NEVER moves the
+    // REM  highlight. The one exception is forced: if the highlighted file is inside a folder being
+    // REM  hidden, it would vanish from the screen, so the highlight goes to that folder (as Finder
+    // REM  does) instead of pointing at nothing.
+
+    /// True for a folder that can be revealed. Packages (.app, .photoslibrary) show as one item,
+    /// the way Finder shows them, so they get no triangle.
+    static func canReveal(_ entry: FileEntry) -> Bool {
+        entry.isFolder && !entry.isPackage && entry.kind == .folder
+    }
+
+    func isRevealed(_ entry: FileEntry) -> Bool { revealed.contains(entry.id) }
+
+    func toggleReveal(_ entry: FileEntry) {
+        guard Self.canReveal(entry) else { return }
+        if revealed.contains(entry.id) {
+            revealed.remove(entry.id)
+            if let selectedID, StateStore.path(selectedID, isInside: entry.id), selectedID != entry.id {
+                self.selectedID = entry.id
+            }
+        } else {
+            revealed.insert(entry.id)
+        }
+        store.save(revealed: Array(revealed), for: side)
+        rebuildRows()
+    }
+
+    /// `entries`, with each revealed folder's contents under it — read fresh from the disk,
+    /// in this pane's sort order and hidden-file setting.
+    private func rebuildRows() {
+        var out: [Row] = []
+        func add(_ list: [FileEntry], depth: Int) {
+            for entry in list {
+                out.append(Row(entry: entry, depth: depth))
+                // REM  A depth cap, so a folder that links back into itself cannot loop forever.
+                if depth < 32, Self.canReveal(entry), revealed.contains(entry.id),
+                   let inside = try? Self.listing(of: entry.url, sort: sortKey, showHidden: showHidden) {
+                    add(inside, depth: depth + 1)
+                }
+            }
+        }
+        add(entries, depth: 0)
+        rows = out
     }
 }

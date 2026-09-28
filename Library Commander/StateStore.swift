@@ -107,6 +107,9 @@ final class StateStore {
 
     func sort(for side: String) -> String? { defaults.string(forKey: key(side, "sort")) }
     func save(sort: String, for side: String) { defaults.set(sort, forKey: key(side, "sort")) }
+    /// Folders revealed in this pane (Finder's disclosure triangle), by path.
+    func revealed(for side: String) -> [String] { defaults.stringArray(forKey: key(side, "revealed")) ?? [] }
+    func save(revealed: [String], for side: String) { defaults.set(revealed, forKey: key(side, "revealed")) }
     func showHidden(for side: String) -> Bool { defaults.bool(forKey: key(side, "showHidden")) }
     func save(showHidden: Bool, for side: String) { defaults.set(showHidden, forKey: key(side, "showHidden")) }
 

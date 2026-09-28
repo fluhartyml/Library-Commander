@@ -270,9 +270,9 @@ struct PaneView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(pane.entries) { entry in
-                            row(entry)
-                                .id(entry.id)
+                        ForEach(pane.rows) { line in
+                            row(line.entry, depth: line.depth)
+                                .id(line.id)
                         }
                     }
                 }
@@ -285,9 +285,28 @@ struct PaneView: View {
         }
     }
 
-    private func row(_ entry: FileEntry) -> some View {
+    private func row(_ entry: FileEntry, depth: Int) -> some View {
         let selected = entry.id == pane.selectedID
         return HStack(spacing: 8) {
+            // REM  Indent one step per revealed level, like Finder's list view.
+            Color.clear.frame(width: CGFloat(depth) * 22, height: 1)
+            // REM  THE REVEAL TRIANGLE. It is its own button, so clicking it opens or closes the
+            // REM  folder and does NOT touch the highlight (his rule — see PaneModel's Reveal).
+            if PaneModel.canReveal(entry) {
+                Button {
+                    onActivate()
+                    pane.toggleReveal(entry)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .rotationEffect(.degrees(pane.isRevealed(entry) ? 90 : 0))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20)
+                }
+                .buttonStyle(.borderless)
+                .help(pane.isRevealed(entry) ? "Hide what is inside" : "Show what is inside")
+            } else {
+                Color.clear.frame(width: 20, height: 1)
+            }
             // REM  Glyph and color by file type — his ask, 2026-09-28. See FileKind.swift.
             // REM  HIDDEN = RED, his ask 2026-09-28: "i want hidden files and folder glyphs to be
             // REM  colored red." The glyph keeps its type's SHAPE; only the color says "hidden".
