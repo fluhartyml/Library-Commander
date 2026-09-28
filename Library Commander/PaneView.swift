@@ -4,8 +4,8 @@
 //
 // REM  FILE COMMANDER FIRST, MEDIA SECOND — see Library_CommanderApp.swift.
 // REM
-// REM  One pane on screen. Header, his layout (2026-09-28): a DRIVE PICKER, a "↑ .." button
-// REM  (up one folder), and a PATH BOX he can type a path into. Then a plain list of what is in
+// REM  One pane on screen. Header, his layout and ORDER (2026-09-28): a DRIVE PICKER, then a PATH
+// REM  BOX he can type a path into, then the (^).. up-one-folder button. Then a plain list of what is in
 // REM  the folder. The list does NOT take the keyboard — KeyRouter.swift drives it. A click
 // REM  highlights a row and makes this pane active; a double-click opens a folder.
 // REM  What happens (or why it could not) is told in the status bar at the bottom.
@@ -52,7 +52,7 @@ struct PaneView: View {
         }
     }
 
-    // MARK: - Header: drive picker · ↑ .. · path box
+    // MARK: - Header: drive picker · path box · (^)..  (his order, 2026-09-28)
 
     private var header: some View {
         HStack(spacing: 8) {
@@ -68,6 +68,10 @@ struct PaneView: View {
             .fixedSize()
             .help("Choose a drive")
 
+            TextField("Type a path and press Return", text: $pathText)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { go(to: pathText, name: nil) }
+
             Button {
                 pane.goUp()
             } label: {
@@ -79,10 +83,6 @@ struct PaneView: View {
             }
             .disabled(!pane.canGoUp)
             .help("Up one folder (⌘↑)")
-
-            TextField("Type a path and press Return", text: $pathText)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { go(to: pathText, name: nil) }
         }
         .padding(8)
     }
