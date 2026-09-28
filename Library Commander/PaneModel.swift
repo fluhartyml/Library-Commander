@@ -32,6 +32,8 @@ struct FileEntry: Identifiable, Hashable {
     var isHidden: Bool = false
     /// A folder macOS treats as one item (.photoslibrary, .app) — read from the disk.
     var isPackage: Bool = false
+    /// Set only on the rows of the DRIVE LIST: which kind of drive this row is.
+    var drive: DriveKind? = nil
     // REM  What kind of file it is — picks the row's glyph and color (FileKind.swift).
     var kind: FileKind { FileKind.of(name: name, isFolder: isFolder, isPackage: isPackage) }
 }
@@ -80,6 +82,13 @@ final class PaneModel {
     private(set) var rows: [Row] = []
     /// Folders whose contents are revealed, by path. Saved (everything persists).
     private(set) var revealed: Set<String> = []
+    /// True while the pane shows the DRIVE LIST instead of a folder. Saved.
+    /// REM  His ask, 2026-09-28: at the top of a drive, (^).. "should show the drive list local or
+    /// REM  network." So "up" never dead-ends: above a drive's top is every drive.
+    private(set) var showingDrives = false
+    /// What happened when a row was opened from the keyboard or a double-click — so the view can
+    /// report it, or ask him for permission when a drive has never been granted.
+    @ObservationIgnored var onOpen: ((GoResult, URL) -> Void)?
     /// The highlighted row, by path. nil = nothing highlighted. Saved on every change.
     var selectedID: FileEntry.ID? {
         didSet { store.save(selectedPath: selectedID, for: side) }
@@ -117,9 +126,16 @@ final class PaneModel {
         selectedIndex.map { rows[$0].entry }
     }
 
+    /// (^).. and ⌘↑. Inside the chosen folder it goes up one folder; at its top it shows the
+    /// drive list. Only the drive list itself has nothing above it.
     var canGoUp: Bool {
+        !showingDrives && currentURL != nil
+    }
+
+    /// At the top of the drive or folder he chose — the next "up" is the drive list.
+    var isAtTop: Bool {
         guard let rootURL, let currentURL else { return false }
-        return currentURL.standardizedFileURL.path != rootURL.standardizedFileURL.path
+        return currentURL.standardizedFileURL.path == rootURL.standardizedFileURL.path
     }
 
     // MARK: - Saved place
@@ -127,12 +143,18 @@ final class PaneModel {
     /// At launch (and when a drive mounts): back to the saved folder and highlight.
     /// Does nothing if the pane is already showing its folder.
     func restore() {
-        guard currentURL == nil else { return }
+        guard currentURL == nil, !showingDrives else { return }
         let place = store.place(for: side)
-        guard let data = place.rootBookmark else { return }   // never chosen — stays empty
+        // REM  Quit while showing the drive list → it opens on the drive list again.
+        let wasShowingDrives = store.showingDrives(for: side)
+        guard let data = place.rootBookmark else {             // never chosen — stays empty…
+            if wasShowingDrives { showDrives() }               // …unless it was on the drive list
+            return
+        }
 
         guard let (root, stale) = StateStore.resolve(data),
               FileManager.default.fileExists(atPath: root.path) else {
+            if wasShowingDrives { showDrives(); return }       // the drive list needs no drive
             missingRootPath = place.rootPath
             return
         }
@@ -145,6 +167,11 @@ final class PaneModel {
         if let saved = place.currentPath, isInsideRoot(saved),
            FileManager.default.fileExists(atPath: saved) {
             folder = URL(fileURLWithPath: saved)
+        }
+        if wasShowingDrives {
+            currentURL = folder
+            showDrives()
+            return
         }
         show(folder: folder, highlight: place.selectedPath)
     }
@@ -230,6 +257,13 @@ final class PaneModel {
     /// Opens the highlighted row if it is a folder. Files do nothing yet (step one).
     func openSelected() {
         guard let entry = selectedEntry, entry.isFolder else { return }
+        if showingDrives {
+            // REM  Opening a drive may need his permission the first time, which only the view
+            // REM  can ask for — so the result goes back to it.
+            let result = go(toPath: entry.url.path)
+            onOpen?(result, entry.url)
+            return
+        }
         show(folder: entry.url, highlight: nil)
     }
 
@@ -237,16 +271,37 @@ final class PaneModel {
     /// the way Finder does it.
     func goUp() {
         guard canGoUp, let currentURL else { return }
+        if isAtTop { showDrives(); return }
         show(folder: currentURL.deletingLastPathComponent(), highlight: currentURL.path)
+    }
+
+    // MARK: - The drive list
+
+    /// Every drive, local first then network, as rows. The drive the pane was on is highlighted,
+    /// so pressing Return goes straight back.
+    func showDrives() {
+        let drives = Drives.mounted()
+        showingDrives = true
+        store.save(showingDrives: true, for: side)
+        errorMessage = nil
+        entries = drives.map { FileEntry(url: $0.url, name: $0.name, isFolder: true, drive: $0.kind) }
+        rows = entries.map { Row(entry: $0, depth: 0) }
+        let here = currentURL.flatMap { Drives.drive(holding: $0.standardizedFileURL.path, in: drives) }
+        selectedID = here?.id ?? rows.first?.id
     }
 
     /// Re-reads the folder, keeping the highlight on the same file if it is still there.
     func reload() {
+        if showingDrives { showDrives(); return }
         guard let currentURL else { return }
         show(folder: currentURL, highlight: selectedID)
     }
 
     private func show(folder: URL, highlight: FileEntry.ID?) {
+        if showingDrives {                                     // leaving the drive list
+            showingDrives = false
+            store.save(showingDrives: false, for: side)
+        }
         currentURL = folder
         store.save(currentPath: folder.path, for: side)
         do {
@@ -355,7 +410,8 @@ final class PaneModel {
     /// True for a folder that can be revealed. Packages (.app, .photoslibrary) show as one item,
     /// the way Finder shows them, so they get no triangle.
     static func canReveal(_ entry: FileEntry) -> Bool {
-        entry.isFolder && !entry.isPackage && entry.kind == .folder
+        // REM  Drives in the drive list get no triangle: opening one may need his permission first.
+        entry.isFolder && !entry.isPackage && entry.kind == .folder && entry.drive == nil
     }
 
     func isRevealed(_ entry: FileEntry) -> Bool { revealed.contains(entry.id) }

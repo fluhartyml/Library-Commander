@@ -77,13 +77,19 @@ struct PaneModelTests {
         #expect(pane.selectedEntry?.name == "Alpha Folder")   // the folder just left stays highlighted
     }
 
-    @Test func neverGoesAboveTheChosenFolder() throws {
+    @Test func upFromTheTopShowsTheDriveList() throws {
+        // REM  Build 54, his ask: at the top of a drive, (^).. shows the drive list — never a dead end.
         let pane = makePane()
         let root = try makeFolder()
         pane.choose(root: root)
-        #expect(!pane.canGoUp)
+        #expect(pane.isAtTop)
+        #expect(pane.canGoUp)
         pane.goUp()
-        #expect(pane.currentURL?.standardizedFileURL.path == root.standardizedFileURL.path)
+        #expect(pane.showingDrives)
+        #expect(pane.rows.contains { $0.entry.drive == .startup })        // the Mac's own disk is listed
+        #expect(pane.selectedEntry?.drive != nil)                          // a drive is highlighted
+        #expect(!pane.canGoUp)                                            // nothing above the drive list
+        #expect(pane.currentURL?.standardizedFileURL.path == root.standardizedFileURL.path)  // place kept
     }
 
     @Test func openingAFileDoesNothing() throws {

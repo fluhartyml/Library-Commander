@@ -107,6 +107,9 @@ final class StateStore {
 
     func sort(for side: String) -> String? { defaults.string(forKey: key(side, "sort")) }
     func save(sort: String, for side: String) { defaults.set(sort, forKey: key(side, "sort")) }
+    /// True when the pane was showing the drive list.
+    func showingDrives(for side: String) -> Bool { defaults.bool(forKey: key(side, "showingDrives")) }
+    func save(showingDrives: Bool, for side: String) { defaults.set(showingDrives, forKey: key(side, "showingDrives")) }
     /// Folders revealed in this pane (Finder's disclosure triangle), by path.
     func revealed(for side: String) -> [String] { defaults.stringArray(forKey: key(side, "revealed")) ?? [] }
     func save(revealed: [String], for side: String) { defaults.set(revealed, forKey: key(side, "revealed")) }

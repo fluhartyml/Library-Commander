@@ -27,6 +27,8 @@ struct PaneView: View {
     // REM  His text size (Accessibility…), for the few places that set a font of their own.
     @AppStorage(TextSize.key) private var textSize = TextSize.standard
     @State private var pathText = ""
+    /// True while he is typing in the path box.
+    @FocusState private var pathFocused: Bool
     @State private var drives: [Drive] = []
     @State private var askingNewFolderName = false
     @State private var newFolderName = "untitled folder"
@@ -50,9 +52,27 @@ struct PaneView: View {
         .simultaneousGesture(TapGesture().onEnded { onActivate() })
         .onAppear {
             drives = Drives.mounted()
-            pathText = pane.currentURL?.path ?? ""
+            syncPath()
+            // REM  Opening a drive from the drive list (Return / double-click) reports here, and
+            // REM  asks for permission when that drive has never been granted.
+            pane.onOpen = { result, url in
+                let name = FileManager.default.displayName(atPath: url.path)
+                switch result {
+                case .opened:          report("Opened \(name).", false)
+                case .needsPermission: askForFolder(startingAt: url)
+                case .notFound:        report("“\(name)” is not there any more.", true)
+                case .notAFolder:      report("“\(name)” is not a folder.", true)
+                }
+                syncPath()
+            }
         }
-        .onChange(of: pane.currentURL) { _, url in pathText = url?.path ?? "" }
+        .onChange(of: pane.currentURL) { _, _ in syncPath() }
+        .onChange(of: pane.showingDrives) { _, _ in syncPath() }
+        // REM  THE PATH-BOX FIX (build 54). His bug, 2026-09-28: he cleared the box by accident, then
+        // REM  picked the drive the pane was ALREADY on — nothing changed, so nothing refilled it, and
+        // REM  it sat empty. Now the box shows the real place again after every drive pick or path,
+        // REM  and whenever he clicks away from it without pressing Return.
+        .onChange(of: pathFocused) { _, typing in if !typing { syncPath() } }
         // The drive list follows what is plugged in.
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in
             drives = Drives.mounted()
@@ -73,12 +93,14 @@ struct PaneView: View {
                 Divider()
                 Button("Other Folder…") { askForFolder(startingAt: nil) }
             } label: {
-                Label(pane.driveName ?? "Drives", systemImage: "externaldrive")
+                Label(pane.showingDrives ? "Drives" : (pane.driveName ?? "Drives"), systemImage: "externaldrive")
             }
             .fixedSize()
             .help("Choose a drive")
 
-            TextField("Type a path and press Return", text: $pathText)
+            TextField(pane.showingDrives ? "Drives — pick one below, or type a path" : "Type a path and press Return",
+                      text: $pathText)
+                .focused($pathFocused)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { go(to: pathText, name: nil) }
 
@@ -92,7 +114,7 @@ struct PaneView: View {
                 }
             }
             .disabled(!pane.canGoUp)
-            .help("Up one folder (⌘↑)")
+            .help(pane.isAtTop ? "Show all drives (⌘↑)" : "Up one folder (⌘↑)")
         }
         .padding(8)
     }
@@ -104,12 +126,13 @@ struct PaneView: View {
         switch pane.go(toPath: path) {
         case .opened:
             report("Opened \(label).", false)
+            syncPath()
         case .notFound:
             report("Nothing at \(path).", true)
-            pathText = pane.currentURL?.path ?? ""
+            syncPath()
         case .notAFolder:
             report("\(path) is a file, not a folder.", true)
-            pathText = pane.currentURL?.path ?? ""
+            syncPath()
         case .needsPermission:
             // The sandbox needs him to grant it once; after that it opens without asking.
             askForFolder(startingAt: URL(fileURLWithPath: path))
@@ -133,8 +156,13 @@ struct PaneView: View {
             report("Opened \(FileManager.default.displayName(atPath: url.path)). You will not be asked for it again.", false)
         } else {
             report("Nothing opened — access was not granted.", true)
-            pathText = pane.currentURL?.path ?? ""
         }
+        syncPath()
+    }
+
+    /// The path box shows where the pane really is: the folder's path, or empty on the drive list.
+    private func syncPath() {
+        pathText = pane.showingDrives ? "" : (pane.currentURL?.path ?? "")
     }
 
     // MARK: - Toolbar: Sort · New Folder · Refresh · Show Hidden
@@ -239,7 +267,9 @@ struct PaneView: View {
 
     @ViewBuilder
     private var content: some View {
-        if pane.currentURL == nil, let missing = pane.missingRootPath {
+        if pane.showingDrives {
+            fileList
+        } else if pane.currentURL == nil, let missing = pane.missingRootPath {
             // The saved folder is not reachable — usually a drive that is not connected.
             // Its place is kept; it comes back by itself when the drive mounts.
             VStack(spacing: 12) {
@@ -267,20 +297,25 @@ struct PaneView: View {
             }
             .frame(maxWidth: .infinity)
         } else {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(pane.rows) { line in
-                            row(line.entry, depth: line.depth)
-                                .id(line.id)
-                        }
+            fileList
+        }
+    }
+
+    /// The rows — a folder's contents, or the drive list.
+    private var fileList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(pane.rows) { line in
+                        row(line.entry, depth: line.depth)
+                            .id(line.id)
                     }
                 }
-                // Keep the highlighted row on screen as the arrows move it.
-                .onChange(of: pane.selectedID) { _, id in
-                    guard let id else { return }
-                    proxy.scrollTo(id)
-                }
+            }
+            // Keep the highlighted row on screen as the arrows move it.
+            .onChange(of: pane.selectedID) { _, id in
+                guard let id else { return }
+                proxy.scrollTo(id)
             }
         }
     }
@@ -310,13 +345,18 @@ struct PaneView: View {
             // REM  Glyph and color by file type — his ask, 2026-09-28. See FileKind.swift.
             // REM  HIDDEN = RED, his ask 2026-09-28: "i want hidden files and folder glyphs to be
             // REM  colored red." The glyph keeps its type's SHAPE; only the color says "hidden".
-            Image(systemName: entry.kind.symbol)
-                .foregroundStyle(entry.isHidden ? FileKind.hiddenRed : entry.kind.color)
+            // REM  Drive-list rows show the drive's own glyph: startup disk, plugged-in drive, network.
+            Image(systemName: entry.drive?.symbol ?? entry.kind.symbol)
+                .foregroundStyle(entry.drive?.color ?? (entry.isHidden ? FileKind.hiddenRed : entry.kind.color))
                 .frame(width: 26)
             Text(entry.name)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 0)
+            // REM  "local or network" — his words; each drive row says which.
+            if let drive = entry.drive {
+                Text(drive.title).foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -335,7 +375,7 @@ struct PaneView: View {
 
     private var footer: some View {
         HStack {
-            Text("\(pane.entries.count) items")
+            Text(pane.showingDrives ? "\(pane.entries.count) drives" : "\(pane.entries.count) items")
                 .foregroundStyle(.secondary)
             Spacer()
         }
