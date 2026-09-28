@@ -1951,15 +1951,30 @@ struct FileBrowserPanel: View {
         }
     }
 
-    // Arrow Key Sorting: Move current track to other pane + auto-play next
+    // Arrow Key Sorting: the arrow pointing at the other pane sends what is HIGHLIGHTED.
+    //
+    // Build 35 — his bug and ruling, 2026-09-28: a highlighted (not playing) video did not
+    // move, because this only ever moved the track loaded in the player. ***"it should move
+    // ANY file selected wether video audio or random text or pdf file"*** · ***"folders too
+    // … anything highlighted."***
+    // - ONE highlighted file: the quick move, which the opposite arrow can undo.
+    // - Folders, or several items: the same job as ⌘6 — it asks before replacing anything.
+    //   The quick move replaces a same-named item WITHOUT asking, and for a folder that would
+    //   delete a whole folder on the other side. These are not undoable with the arrow.
+    // - Nothing highlighted: the loaded track, as before.
     private func arrowKeySortMove() {
-        guard let current = currentMedia else {
-            print("No track currently playing to move")
-            return
+        let highlighted = fileSystem.files.filter { selectedItems.contains($0.id) }
+        if highlighted.count == 1, let only = highlighted.first, !only.isDirectory {
+            moveToOtherPane(item: only)
+        } else if !highlighted.isEmpty {
+            runFileOperation(.move, highlighted)
+        } else if let current = currentMedia {
+            moveToOtherPane(item: current)
+        } else {
+            toastMessage = "Nothing highlighted to move"
+            showToast = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { showToast = false }
         }
-
-        moveToOtherPane(item: current)
-        print("☢️ Moved: \(current.name)")
     }
 
     private func copyToOtherPane(item: FileItem) {
