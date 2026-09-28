@@ -74,6 +74,8 @@ struct FileBrowserPanel: View {
     /// to have been a click: a video reached with the arrows and then clicked once was renaming
     /// immediately (his bug, 2026-09-28). Any other change of selection clears it.
     @State private var selectedByClick: FileItem.ID?
+    /// Build 33 — bumped to press the player's own play/pause from the row or the preview.
+    @State private var playPauseRequest = 0
     @State private var isCreatingNewFile = false
     @State private var newItemName = "untitled"
     @State private var renamingItem: FileItem?
@@ -407,11 +409,12 @@ struct FileBrowserPanel: View {
 
                                     // Play button for media files
                                     if isMediaFile(item) {
-                                        Button(action: {
-                                            shouldAutoPlay = true
-                                            onItemDoubleClick(item)
-                                        }) {
-                                            Image(systemName: "play.circle.fill")
+                                        // Build 33 — his bug, 2026-09-28: this "would only play
+                                        // when pressed it would not pause." It toggles now, and
+                                        // shows ⏸ while its video is the one playing.
+                                        Button(action: { playOrPause(item) }) {
+                                            Image(systemName: isCurrentlyPlaying && currentMedia?.path == item.path
+                                                  ? "pause.circle.fill" : "play.circle.fill")
                                                 .font(.lc(18))
                                                 .foregroundColor(.accentColor)
                                         }
@@ -857,6 +860,13 @@ struct FileBrowserPanel: View {
                 Divider()
                 PanePreview(item: previewTarget)
                     .containerRelativeFrame(.vertical) { height, _ in height * 0.4 }
+                    // Build 33 — his bug, 2026-09-28: clicking the preview cleared the highlight,
+                    // because the click fell through to the pane's "empty space" handler.
+                    // Clicking a video's preview plays or pauses it; anything else is ignored.
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if let item = previewTarget, isMediaFile(item) { playOrPause(item) }
+                    }
             }
 
             // Selected file metadata footer
@@ -903,7 +913,8 @@ struct FileBrowserPanel: View {
                 fileSystem: fileSystem,
                 onSwitchToOpposite: onSwitchToOpposite,
                 getOppositeFirstMediaURL: getOppositeFirstMediaURL,
-                isMinimized: $playerMinimized
+                isMinimized: $playerMinimized,
+                playPauseRequest: playPauseRequest
             )
 
             // Breadcrumbs footer
@@ -1974,6 +1985,17 @@ struct FileBrowserPanel: View {
     }
 
     /// What the preview shows: the item last clicked, else the first selected.
+    /// Build 33 — the row's ▶ and a click on the preview: if this is the video already in the
+    /// open player, play/pause it where it is; otherwise open it and play from the start.
+    private func playOrPause(_ item: FileItem) {
+        if showMediaPlayer, currentMedia?.path == item.path {
+            playPauseRequest += 1
+        } else {
+            shouldAutoPlay = true
+            onItemDoubleClick(item)
+        }
+    }
+
     private var previewTarget: FileItem? {
         if let last = lastSelectedItem, selectedItems.contains(last.id) { return last }
         return fileSystem.files.first { selectedItems.contains($0.id) }

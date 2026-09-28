@@ -30,6 +30,10 @@ struct InPaneMediaPlayer: View {
     /// two under the preview and if the media player is brought into focus or maximized it
     /// takes over the preview because the media player is the preview."
     var isMinimized: Binding<Bool> = .constant(false)
+    /// Build 33 — each change is one press of play/pause from outside the player: the row's
+    /// ▶ button and a click on the preview. Same toggle as the ⏯ button, so a pause keeps
+    /// its place instead of reloading the video.
+    var playPauseRequest: Int = 0
 
     @State private var player: AVPlayer?
     @State private var currentTime: Double = 0
@@ -429,6 +433,7 @@ struct InPaneMediaPlayer: View {
                 lastMediaWasVideo = isVideo
                 setupPlayer()
             }
+            .onChange(of: playPauseRequest) { togglePlayPause() }
             .onChange(of: currentMedia) {
                 // Size follows the KIND only when it changes: a video grows, and the first
                 // audio track after a video shrinks. An audio player he maximized stays
