@@ -61,23 +61,26 @@ struct ContentView: View {
         _rightFileSystem = State(initialValue: FileSystemService(startPath: rightPath, sortKey: "rightPaneSort"))
     }
 
+    // Build 27 — his bug, 2026-09-28: "auto play and play next were automatically toggled
+    // on." Every switch starts OFF; he turns on what he wants. (Next started on since
+    // 2025-11-10; Autoplay started on because Claude chose it in build 25 — not his call.)
     // Left pane media player state
     @State private var leftCurrentMedia: FileItem?
     @State private var showLeftMediaPlayer = false
-    @State private var autoPlayNextLeft = true
+    @State private var autoPlayNextLeft = false
     @State private var autoPlayOppositeLeft = false
     @State private var crossfadeLeft = false
-    @State private var autoplayLeft = true
+    @State private var autoplayLeft = false
     @State private var shouldAutoPlayLeft = false
     @State private var isLeftPlaying = false
 
     // Right pane media player state
     @State private var rightCurrentMedia: FileItem?
     @State private var showRightMediaPlayer = false
-    @State private var autoPlayNextRight = true
+    @State private var autoPlayNextRight = false
     @State private var autoPlayOppositeRight = false
     @State private var crossfadeRight = false
-    @State private var autoplayRight = true
+    @State private var autoplayRight = false
     @State private var shouldAutoPlayRight = false
     @State private var isRightPlaying = false
 
