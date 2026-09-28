@@ -23,6 +23,8 @@ struct PaneView: View {
     let onActivate: () -> Void
     /// Sends a message to the status bar. `true` = a problem.
     let report: (String, Bool) -> Void
+    /// Handed in so the Rename sheet can run the rename and report it (CommanderModel).
+    let finishRename: (String) -> Bool
 
     // REM  His text size (Accessibility…), for the few places that set a font of their own.
     @AppStorage(TextSize.key) private var textSize = TextSize.standard
@@ -30,8 +32,8 @@ struct PaneView: View {
     /// True while he is typing in the path box.
     @FocusState private var pathFocused: Bool
     @State private var drives: [Drive] = []
-    @State private var askingNewFolderName = false
     @State private var newFolderName = "untitled folder"
+    @State private var renameText = ""
 
 
     var body: some View {
@@ -221,8 +223,8 @@ struct PaneView: View {
             .help("How this pane orders its files. Folders always come first.")
 
             Button {
-                newFolderName = "untitled folder"
-                askingNewFolderName = true
+                onActivate()
+                pane.askingNewFolderName = true
             } label: {
                 Label("New Folder", systemImage: "folder.badge.plus")
             }
@@ -252,7 +254,14 @@ struct PaneView: View {
         .buttonStyle(.borderless)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .sheet(isPresented: $askingNewFolderName) { newFolderSheet }
+        // REM  The sheets are opened by the model's flags, so ⌘7 and ⌘9 (the quick-access bar) open
+        // REM  them exactly as the buttons do.
+        .sheet(isPresented: Binding(get: { pane.askingNewFolderName },
+                                    set: { pane.askingNewFolderName = $0 })) { newFolderSheet }
+        .sheet(isPresented: Binding(get: { pane.askingRename },
+                                    set: { pane.askingRename = $0 })) { renameSheet }
+        .onChange(of: pane.askingNewFolderName) { _, up in if up { newFolderName = "untitled folder" } }
+        .onChange(of: pane.askingRename) { _, up in if up { renameText = pane.selectedEntry?.name ?? "" } }
     }
 
     // REM  A sheet, so the name is typed into its own box. KeyRouter leaves the keys alone while
@@ -267,7 +276,7 @@ struct PaneView: View {
                 .onSubmit(createNewFolder)
             HStack {
                 Spacer()
-                Button("Cancel") { askingNewFolderName = false }
+                Button("Cancel") { pane.askingNewFolderName = false }
                     .keyboardShortcut(.cancelAction)
                 Button("Create", action: createNewFolder)
                     .keyboardShortcut(.defaultAction)
@@ -281,7 +290,7 @@ struct PaneView: View {
         let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
         switch pane.newFolder(named: name) {
         case .created:
-            askingNewFolderName = false
+            pane.askingNewFolderName = false
             report("Made the folder “\(name)”.", false)
         case .emptyName:
             report("A folder needs a name.", true)
@@ -290,12 +299,39 @@ struct PaneView: View {
         case .alreadyExists:
             report("“\(name)” already exists here — nothing was changed.", true)
         case .noFolder:
-            askingNewFolderName = false
+            pane.askingNewFolderName = false
             report("Pick a drive first.", true)
         case .failed(let why):
-            askingNewFolderName = false
+            pane.askingNewFolderName = false
             report("Could not make “\(name)”: \(why)", true)
         }
+    }
+
+    // REM  ⌘9 RENAME (build 56). The whole name is shown and editable, extension included, so
+    // REM  nothing is hidden from him. Never overwrites: a name already taken is refused and
+    // REM  the sheet stays up so he can fix it.
+    private var renameSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Rename").bold()
+            Text("“\(pane.selectedEntry?.name ?? "")”")
+                .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            TextField("New name", text: $renameText)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(commitRename)
+            HStack {
+                Spacer()
+                Button("Cancel") { pane.askingRename = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Rename", action: commitRename)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 520)
+    }
+
+    private func commitRename() {
+        if finishRename(renameText) { pane.askingRename = false }
     }
 
     // MARK: - List

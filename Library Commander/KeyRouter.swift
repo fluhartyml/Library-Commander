@@ -36,6 +36,11 @@ final class KeyRouter {
         if let monitor { NSEvent.removeMonitor(monitor) }
     }
 
+    /// The number keys along the top row, by their hardware key code.
+    private static let digit: [UInt16: Int] = [
+        18: 1, 19: 2, 20: 3, 21: 4, 23: 5, 22: 6, 26: 7, 28: 8, 25: 9, 29: 0,
+    ]
+
     /// True = the key was a file command and was used here.
     private func handle(_ event: NSEvent) -> Bool {
         guard let window = event.window else { return false }
@@ -47,6 +52,12 @@ final class KeyRouter {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let command = flags.contains(.command)
         let pane = commander.activePane
+
+        // REM  THE QUICK-ACCESS BAR, ⌘1–⌘9 (build 56) — Midnight Commander's F-key row. Caught by
+        // REM  the physical key, so it works on any keyboard layout. ⌘ alone, no other modifier.
+        if flags == .command, let number = Self.digit[event.keyCode] {
+            return commander.runQuickKey(number)
+        }
 
         switch event.keyCode {
         case 126 where command:          // ⌘↑  up one folder

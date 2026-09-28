@@ -297,6 +297,31 @@ final class PaneModel {
         show(folder: currentURL, highlight: selectedID)
     }
 
+    /// Re-reads the folder and highlights one particular file — e.g. a file he just renamed.
+    func reload(highlighting id: FileEntry.ID?) {
+        guard !showingDrives, let currentURL else { return }
+        show(folder: currentURL, highlight: id)
+    }
+
+    /// After the highlighted file was moved away or deleted: re-read the folder and highlight the
+    /// row that took its place (the next one down, or the new last row).
+    /// REM  HIS ASK (the old app, 2026-09-28): after ⌘6 the next file in line should be highlighted,
+    /// REM  and he noticed ⌘8 never did it. Here both do, through this one function, so move and
+    /// REM  delete can never drift apart. This is not an auto-highlight of a row he never chose:
+    /// REM  he had a row highlighted, and the highlight stays at that SPOT in the list.
+    func reloadAfterRemoving(rowAt index: Int?) {
+        reload()
+        guard let index, !rows.isEmpty, selectedID == nil else { return }
+        selectedID = rows[min(index, rows.count - 1)].id
+    }
+
+    // REM  THE TWO NAME SHEETS. They live on the model, not the view, so the KEYS (⌘7, ⌘9 — the
+    // REM  quick-access bar, build 56) can open them as well as the buttons.
+    /// True while the New Folder name sheet is up.
+    var askingNewFolderName = false
+    /// True while the Rename sheet is up for the highlighted row.
+    var askingRename = false
+
     private func show(folder: URL, highlight: FileEntry.ID?) {
         if showingDrives {                                     // leaving the drive list
             showingDrives = false
