@@ -67,8 +67,7 @@ final class KeyRouter {
         guard let window = event.window else { return false }
         // A sheet, alert or other window is in front — the keys are not ours.
         if NSApp.modalWindow != nil || window.attachedSheet != nil { return false }
-        // Typing into a text box — the keys belong to it.
-        if window.firstResponder is NSText { return false }
+        let typing = window.firstResponder is NSText
 
         // REM  macOS marks the ARROW keys with two flags of its own — .function and .numericPad —
         // REM  that no one is holding. Left in, "↑ with no modifiers" and "⇧↑" never match.
@@ -80,9 +79,15 @@ final class KeyRouter {
 
         // REM  THE QUICK-ACCESS BAR, ⌘1–⌘9 (build 56) — Midnight Commander's F-key row. Caught by
         // REM  the physical key, so it works on any keyboard layout. ⌘ alone, no other modifier.
+        // REM  THE ⌘6 BONK, FOUND 2026-09-28 by the build-58 key log: every ⌘6 arrived while the
+        // REM  PATH BOX's text editor held the keyboard (_SystemTextFieldFieldEditor) — so this router
+        // REM  handed it to the box, and the box bonked. ⌘1–⌘9 now work EVEN WHILE a text box has the
+        // REM  keyboard, the way a Mac menu shortcut does; a text box has no use for ⌘-numbers.
         if flags == .command, let number = Self.digit[event.keyCode] {
             return commander.runQuickKey(number)
         }
+        // Typing into a text box — every OTHER key (arrows, Return, Tab) belongs to it.
+        if typing { return false }
 
         switch event.keyCode {
         case 126 where command:          // ⌘↑  up one folder

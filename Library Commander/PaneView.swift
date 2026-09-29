@@ -456,6 +456,9 @@ struct PaneView: View {
         }
         .onTapGesture {
             onActivate()
+            // REM  A click on a row ENDS typing in any path box, so the keys go back to the panes.
+            // REM  (The ⌘6 bonk: the path box kept the keyboard after he clicked rows.)
+            NSApp.keyWindow?.makeFirstResponder(nil)
             // REM  ⌘-click adds or removes a row; ⇧-click takes the range — like Finder.
             let held = NSEvent.modifierFlags
             pane.click(entry.id, command: held.contains(.command), shift: held.contains(.shift))

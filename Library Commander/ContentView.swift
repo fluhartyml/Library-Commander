@@ -57,6 +57,10 @@ struct ContentView: View {
             let router = KeyRouter(commander: commander)
             router.start()
             keyRouter = router
+            // REM  At launch SwiftUI hands the keyboard to the FIRST text box — the left path box —
+            // REM  though nothing shows it. That is why ⌘6 and the arrows went to the box. The
+            // REM  keyboard starts with the panes; the box gets it only when he clicks into it.
+            DispatchQueue.main.async { NSApp.keyWindow?.makeFirstResponder(nil) }
         }
         // A drive plugged in — a pane waiting for it comes back to its saved place.
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didMountNotification)) { _ in
