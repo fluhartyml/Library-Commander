@@ -251,7 +251,7 @@ final class CommanderModel {
     /// ⌘5 copy / ⌘6 move — the highlighted row of the source into the target.
     /// REM  The work runs off the main thread, so the window stays live during a long copy.
     /// REM  A name clash stops and ASKS (build 57) — see TransferEngine.swift for his rulings.
-    func transfer(move: Bool) {
+    func transfer(move: Bool, viaArrow: Bool = false) {
         let verb = move ? "move" : "copy"
         guard notBusy(), let items = highlightedItems(for: verb) else { return }
         guard let target = destinationPane.copyTarget else {
@@ -298,12 +298,63 @@ final class CommanderModel {
                 switch outcome {
                 case .success(let summary):
                     self.lastTransfer = summary
+                    // REM  Only an ARROW forward can be undone by the arrow back (his rule) — and
+                    // REM  only the LAST one: "its only one for one no histories".
+                    if viaArrow, !summary.journal.isEmpty {
+                        self.lastForward = (summary.journal, move)
+                    }
                     self.report(Self.describe(summary, name: name, move: move, targetName: targetName),
                                 problem: summary.stopped)
                 case .failure(let error):
                     self.report(Self.explain(error, name: name, verb: verb, targetName: targetName), problem: true)
                 }
             }
+        }
+    }
+
+    // MARK: - Arrow move and copy (build 62)
+
+    // REM  HIS DESIGN, 2026-09-28, with his swap: ⌘ + the arrow pointing at the DESTINATION MOVES,
+    // REM  ⇧⌘ + it COPIES ("can we do command moves and shift command copies?"). The arrow pointing
+    // REM  back at the SOURCE (the active pane) UNDOES the last arrow forward — all of its files.
+    // REM  One undo, no history. Behind the Accessibility toggle, off until he turns it on.
+
+    /// The last arrow forward: what it did, and whether it was a move. nil = nothing to undo.
+    @ObservationIgnored private(set) var lastForward: (journal: [JournalEntry], wasMove: Bool)?
+
+    /// Where the setting is read. REM  Tests pass their own store.
+    var arrowMoveCopyOn: Bool { store.defaults.bool(forKey: ArrowMoveCopy.key) }
+
+    /// ⌘← / ⌘→ / ⇧⌘← / ⇧⌘→. `towardRight` = the arrow points at the right pane.
+    func arrow(towardRight: Bool, copy: Bool) {
+        guard arrowMoveCopyOn else {
+            report("Arrow move and copy is off — turn it on in Library Commander › Accessibility….", problem: true)
+            return
+        }
+        let pointsAtDestination = (towardRight ? PaneSide.right : .left) == destinationSide
+        if pointsAtDestination {
+            transfer(move: !copy, viaArrow: true)
+        } else {
+            undoLastForward()
+        }
+    }
+
+    /// The arrow back: the whole last forward, reversed.
+    func undoLastForward() {
+        guard notBusy() else { return }
+        guard let forward = lastForward else {
+            report("Nothing to undo.", problem: true)
+            return
+        }
+        lastForward = nil                                   // one undo, never twice
+        let result = TransferEngine.undo(forward.journal, wasMove: forward.wasMove)
+        left.reload()
+        right.reload()
+        let what = forward.wasMove ? "move" : "copy"
+        if result.problems.isEmpty {
+            report("Undid the \(what) — \(result.undone) item\(result.undone == 1 ? "" : "s") \(forward.wasMove ? "back where they started" : "removed from the destination").")
+        } else {
+            report("Undid the \(what) for \(result.undone); \(result.problems.count) could not be undone — \(result.problems.joined(separator: " · "))", problem: true)
         }
     }
 

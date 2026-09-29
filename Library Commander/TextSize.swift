@@ -31,3 +31,10 @@ enum TextSize {
         clamped(UserDefaults.standard.object(forKey: key) as? Double)
     }
 }
+
+/// ARROW MOVE AND COPY — the Accessibility toggle (build 62). His words, 2026-09-28: "on the
+/// accessability sheet it is supposed to have a toggle for the arrow move to target and arrow
+/// undo to source." Off until he turns it on; saved like every setting.
+enum ArrowMoveCopy {
+    static let key = "arrowMoveCopy"
+}

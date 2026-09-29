@@ -88,6 +88,22 @@ nonisolated struct Clash: Sendable, Identifiable, Equatable {
     let keepBothName: String
 }
 
+/// One thing a job did, so the arrow back can reverse it (build 62).
+nonisolated struct JournalEntry: Sendable, Equatable {
+    enum Kind: Sendable, Equatable {
+        /// Landed where nothing was (including Keep Both's "Name 2").
+        case placed
+        /// Took the place of an older one. `oldInTrash` = where the old one went (nil = deleted for good).
+        case replaced(oldInTrash: URL?)
+        /// A move of an identical file: the duplicate in the source was removed; the one at `landed`
+        /// was already there.
+        case removedFromSource
+    }
+    let original: URL
+    let landed: URL
+    let kind: Kind
+}
+
 nonisolated struct TransferSummary: Sendable, Equatable {
     var placed = 0
     var replaced = 0
@@ -97,6 +113,8 @@ nonisolated struct TransferSummary: Sendable, Equatable {
     var stopped = false
     /// Where replaced items went in the Trash. REM  The tests take their own files back out.
     var trashed: [URL] = []
+    /// Everything done, in order — what an undo reverses.
+    var journal: [JournalEntry] = []
 
     var total: Int { placed + replaced + keptBoth + removedFromSource }
 }
@@ -148,6 +166,7 @@ nonisolated final class TransferEngine: @unchecked Sendable {
         let dst = FileOps.destination(of: src, in: folder)
         guard FileManager.default.fileExists(atPath: dst.path) else {
             try place(src, at: dst)
+            summary.journal.append(JournalEntry(original: src, landed: dst, kind: .placed))
             summary.placed += 1
             await progress(summary.total)
             return
@@ -204,13 +223,16 @@ nonisolated final class TransferEngine: @unchecked Sendable {
         case .replaceIfSizeDiffers:
             if incoming.size != existing.size { try replace(src, dst) } else { summary.skipped += 1 }
         case .keepBoth:
-            try place(src, at: Self.keepBothURL(for: src.lastPathComponent, in: folder))
+            let other = Self.keepBothURL(for: src.lastPathComponent, in: folder)
+            try place(src, at: other)
+            summary.journal.append(JournalEntry(original: src, landed: other, kind: .placed))
             summary.keptBoth += 1
         case .removeFromSource:
             // REM  Only for a MOVE of two IDENTICAL files: the one already there IS the file, so
             // REM  the duplicate in the source is removed — after every byte is compared AGAIN.
             if isMove, FileOps.identical(src, dst) {
                 try FileManager.default.removeItem(at: src)
+                summary.journal.append(JournalEntry(original: src, landed: dst, kind: .removedFromSource))
                 summary.removedFromSource += 1
             } else {
                 summary.skipped += 1
@@ -258,8 +280,10 @@ nonisolated final class TransferEngine: @unchecked Sendable {
             try? fm.removeItem(at: temp)
             throw FileOps.Failure.verifyFailed
         }
+        var oldInTrash: URL?
         do {
-            if let trashed = try Self.discard(dst) { summary.trashed.append(trashed) }
+            oldInTrash = try Self.discard(dst)
+            if let oldInTrash { summary.trashed.append(oldInTrash) }
         } catch {
             try? fm.removeItem(at: temp)
             throw FileOps.Failure.system(error.localizedDescription)
@@ -267,6 +291,7 @@ nonisolated final class TransferEngine: @unchecked Sendable {
         do { try fm.moveItem(at: temp, to: dst) }
         catch { throw FileOps.Failure.system(error.localizedDescription) }
         if isMove { try? fm.removeItem(at: src) }
+        summary.journal.append(JournalEntry(original: src, landed: dst, kind: .replaced(oldInTrash: oldInTrash)))
         summary.replaced += 1
     }
 
@@ -301,5 +326,65 @@ nonisolated final class TransferEngine: @unchecked Sendable {
             if !FileManager.default.fileExists(atPath: url.path) { return url }
             n += 1
         }
+    }
+
+    // MARK: - Undo (the arrow back toward the source, build 62)
+
+    // REM  HIS RULE, 2026-09-28: "the bac only undos the forward if the forward selected multiple
+    // REM  files then the back puts all back where it started." ONE undo: the whole last forward.
+    // REM  · Undo a MOVE → every item goes back where it came from.
+    // REM  · Undo a COPY → the copies are removed ("it deletes or removes the files it copied" —
+    // REM    his words; Finder does the same). The originals were never touched.
+    // REM  · A REPLACE is reversed too: the old one comes back out of the Trash. If it was on an
+    // REM    external drive it was deleted for good, and the undo SAYS so — it cannot be restored.
+    // REM  Undone in REVERSE order, so items inside a merged folder go back before the folder.
+
+    nonisolated struct UndoResult: Sendable, Equatable {
+        var undone = 0
+        /// Items that could not be put back, each with the reason in words.
+        var problems: [String] = []
+    }
+
+    static func undo(_ journal: [JournalEntry], wasMove: Bool) -> UndoResult {
+        let fm = FileManager.default
+        var result = UndoResult()
+        for entry in journal.reversed() {
+            let name = entry.original.lastPathComponent
+            do {
+                if wasMove {
+                    switch entry.kind {
+                    case .removedFromSource:
+                        // The duplicate was removed; the one at `landed` was there before — copy it back.
+                        try fm.createDirectory(at: entry.original.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try fm.copyItem(at: entry.landed, to: entry.original)
+                    case .placed, .replaced:
+                        guard !fm.fileExists(atPath: entry.original.path) else {
+                            result.problems.append("“\(name)”: something with that name is back in the source")
+                            continue
+                        }
+                        try fm.createDirectory(at: entry.original.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try fm.moveItem(at: entry.landed, to: entry.original)
+                    }
+                } else {
+                    switch entry.kind {
+                    case .placed, .replaced:
+                        try fm.removeItem(at: entry.landed)        // a copy: the original still exists
+                    case .removedFromSource:
+                        continue                                    // never happens on a copy
+                    }
+                }
+                if case .replaced(let oldInTrash) = entry.kind {
+                    if let oldInTrash, fm.fileExists(atPath: oldInTrash.path) {
+                        try fm.moveItem(at: oldInTrash, to: entry.landed)
+                    } else {
+                        result.problems.append("“\(name)”: the one it replaced was deleted for good (external drive) and cannot come back")
+                    }
+                }
+                result.undone += 1
+            } catch {
+                result.problems.append("“\(name)”: \(error.localizedDescription)")
+            }
+        }
+        return result
     }
 }

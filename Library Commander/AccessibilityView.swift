@@ -14,6 +14,7 @@ import SwiftUI
 
 struct AccessibilityView: View {
     @AppStorage(TextSize.key) private var textSize = TextSize.standard
+    @AppStorage(ArrowMoveCopy.key) private var arrowMoveCopy = false
 
     var body: some View {
         Form {
@@ -33,6 +34,14 @@ struct AccessibilityView: View {
                 Text("This is how file names and messages will look.")
                     .font(.system(size: textSize))
                     .foregroundStyle(.secondary)
+            }
+            // REM  ARROW MOVE AND COPY (build 62) — his design, 2026-09-28. Stated as SOURCE and
+            // REM  DESTINATION, never left and right: either pane can be either (his correction).
+            Section("Arrow keys") {
+                Toggle("Move and copy with the arrow keys", isOn: $arrowMoveCopy)
+                Text("⌘ + the arrow pointing at the other pane moves the highlighted files there. ⇧⌘ + that arrow copies them. The arrow pointing back at the active pane undoes that last move or copy — all of its files at once.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)

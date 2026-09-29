@@ -98,6 +98,12 @@ final class KeyRouter {
             pane.moveSelection(by: -1)
         case 125 where flags.isEmpty:    // ↓
             pane.moveSelection(by: 1)
+        // REM  ARROW MOVE AND COPY (build 62): ⌘ + ← / → moves, ⇧⌘ copies — toward the destination.
+        // REM  The same arrow back toward the source undoes. CommanderModel works out which is which.
+        case 123 where flags == .command, 124 where flags == .command:
+            commander.arrow(towardRight: event.keyCode == 124, copy: false)
+        case 123 where flags == [.command, .shift], 124 where flags == [.command, .shift]:
+            commander.arrow(towardRight: event.keyCode == 124, copy: true)
         case 126 where flags == .shift:  // ⇧↑  grow the highlight upward (multi-select, build 59)
             pane.moveSelection(by: -1, extend: true)
         case 125 where flags == .shift:  // ⇧↓  grow the highlight downward
