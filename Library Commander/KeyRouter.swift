@@ -86,6 +86,13 @@ final class KeyRouter {
         if flags == .command, let number = Self.digit[event.keyCode] {
             return commander.runQuickKey(number)
         }
+        // REM  ⌘Y QUICK LOOK — his ask, 2026-09-28 (build 65): "maybe we should use command and a key
+        // REM  to use quickview, cant be a q a p". ⌘Y is Finder's own Quick Look key; it opens AND
+        // REM  closes, so it works with ⌘ latched by Sticky Keys. Works while a text box has the keyboard.
+        if flags == .command, event.keyCode == 16 {                     // 16 = Y
+            commander.toggleQuickLook()
+            return true
+        }
         // Typing into a text box — every OTHER key (arrows, Return, Tab) belongs to it.
         if typing { return false }
 

@@ -182,6 +182,11 @@ final class CommanderModel {
         quickLookURL = entry.url
     }
 
+    /// ⌘Y — Quick Look open if closed, closed if open (Finder's key).
+    func toggleQuickLook() {
+        if quickLookURL != nil { quickLookURL = nil } else { view() }
+    }
+
     /// ⌘4 — open the highlighted file in the app macOS uses for it.
     func edit() {
         guard let items = highlightedItems(for: "edit") else { return }

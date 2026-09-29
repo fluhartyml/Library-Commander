@@ -176,4 +176,13 @@ struct ArrowMoveCopyTests {
         commander.quickLookFollow()
         #expect(commander.quickLookURL?.lastPathComponent == "c.mp4")       // the next file, previewed
     }
+
+    @Test func commandYOpensAndClosesQuickLook() throws {
+        let (commander, _, _) = try setUp()
+        pick(commander, ["a.mp4"])
+        commander.toggleQuickLook()
+        #expect(commander.quickLookURL?.lastPathComponent == "a.mp4")
+        commander.toggleQuickLook()
+        #expect(commander.quickLookURL == nil)
+    }
 }
