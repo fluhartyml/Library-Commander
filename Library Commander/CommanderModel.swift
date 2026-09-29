@@ -165,6 +165,23 @@ final class CommanderModel {
         quickLookURL = activePane.selectedEntry?.url ?? items.first?.url
     }
 
+    /// QUICK LOOK FOLLOWS THE HIGHLIGHT (build 64). His goal, 2026-09-28: "i want to scroll through
+    /// the files using the command stickey key lock so i can process the videos like left arrow to
+    /// send to the target and down or up to move to the next or the previous file."
+    /// REM  While Quick Look is open, every change of highlight in the ACTIVE pane — ⌘↑/⌘↓, a click,
+    /// REM  the next row lighting up after a ⌘← move — shows that file. Nothing highlighted closes it.
+    /// REM  The window calls this whenever either pane's highlight or the active pane changes.
+    func quickLookFollow() {
+        guard quickLookURL != nil else { return }                      // only while it is open
+        guard let entry = activePane.selectedEntry, activePane.selection.count <= 1 else {
+            if activePane.selectedEntry == nil { quickLookURL = nil }
+            return                                                      // several highlighted: leave it
+        }
+        guard entry.url != quickLookURL else { return }
+        quickLookURLs = [entry.url]
+        quickLookURL = entry.url
+    }
+
     /// ⌘4 — open the highlighted file in the app macOS uses for it.
     func edit() {
         guard let items = highlightedItems(for: "edit") else { return }

@@ -156,4 +156,24 @@ struct ArrowMoveCopyTests {
         commander.commandUpDown(up: true)                                   // at the top: the drive list
         #expect(commander.left.showingDrives)
     }
+
+    @Test func quickLookFollowsTheHighlightWhileOpen() async throws {
+        // REM  Build 64 — his goal: step with ⌘↓/⌘↑, send with ⌘←, the preview keeps up.
+        let (commander, _, _) = try setUp()
+        pick(commander, ["a.mp4"])
+        commander.commandUpDown(up: false)
+        commander.quickLookFollow()
+        #expect(commander.quickLookURL == nil)                              // closed: stays closed
+        commander.runQuickKey(3)                                            // ⌘3 opens it on b
+        #expect(commander.quickLookURL?.lastPathComponent == "b.mp4")
+        commander.commandUpDown(up: false)
+        commander.quickLookFollow()
+        #expect(commander.quickLookURL?.lastPathComponent == "c.mp4")
+        commander.commandUpDown(up: true)
+        commander.quickLookFollow()
+        commander.arrow(towardRight: true, copy: false)                     // ⌘→ sends b to the target
+        try await settle(commander)
+        commander.quickLookFollow()
+        #expect(commander.quickLookURL?.lastPathComponent == "c.mp4")       // the next file, previewed
+    }
 }

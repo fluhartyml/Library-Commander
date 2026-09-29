@@ -46,6 +46,10 @@ struct ContentView: View {
         .quickLookPreview(Binding(get: { commander.quickLookURL },
                                   set: { commander.quickLookURL = $0 }),
                           in: commander.quickLookURLs)
+        // REM  Quick Look follows the highlight while it is open (build 64) — see quickLookFollow().
+        .onChange(of: commander.left.selectedID) { _, _ in commander.quickLookFollow() }
+        .onChange(of: commander.right.selectedID) { _, _ in commander.quickLookFollow() }
+        .onChange(of: commander.activeSide) { _, _ in commander.quickLookFollow() }
         // REM  THE CLASH SHEET (build 57): a copy or move waits here while he decides.
         .sheet(item: Binding(get: { commander.pendingClash }, set: { _ in })) { clash in
             ClashSheet(clash: clash) { choice, all in commander.answer(choice, applyToAll: all) }
