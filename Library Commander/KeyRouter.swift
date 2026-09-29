@@ -15,6 +15,7 @@
 //
 
 import AppKit
+import os
 
 final class KeyRouter {
     private var monitor: Any?
@@ -28,7 +29,9 @@ final class KeyRouter {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            return self.handle(event) ? nil : event
+            let used = self.handle(event)
+            self.log(event, used: used)
+            return used ? nil : event
         }
     }
 
@@ -40,6 +43,24 @@ final class KeyRouter {
     private static let digit: [UInt16: Int] = [
         18: 1, 19: 2, 20: 3, 21: 4, 23: 5, 22: 6, 26: 7, 28: 8, 25: 9, 29: 0,
     ]
+
+    // REM  DEBUG LOG (build 58) — his ⌘6 bonked on build 57 and the code alone could not say why.
+    // REM  Every key the window sees is written with its key code, its modifiers, what held the
+    // REM  keyboard, whether a sheet was up, and whether the router USED it. Key codes only —
+    // REM  never the characters, so nothing he types into a box is recorded.
+    // REM  Read it: log show --last 10m --predicate 'subsystem == "com.fluharty.Library-Commander"'
+    // REM  Remove once the bonk is explained.
+    private static let logger = Logger(subsystem: "com.fluharty.Library-Commander", category: "keys")
+
+    private func log(_ event: NSEvent, used: Bool) {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let responder = event.window?.firstResponder.map { String(describing: type(of: $0)) } ?? "no window"
+        let sheet = event.window?.attachedSheet != nil
+        let modal = NSApp.modalWindow != nil
+        let line = "key \(event.keyCode) flags 0x\(String(flags.rawValue, radix: 16)) responder \(responder) sheet \(sheet) modal \(modal) → \(used ? "USED" : "passed on")"
+        Self.logger.notice("\(line, privacy: .public)")
+        print("[keys] " + line)
+    }
 
     /// True = the key was a file command and was used here.
     private func handle(_ event: NSEvent) -> Bool {
