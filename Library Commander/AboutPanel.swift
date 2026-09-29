@@ -45,7 +45,10 @@ enum AboutPanel {
             text.append(NSAttributedString(string: s, attributes: a))
         }
 
-        add("A file commander first, and a media organizer and player second.\n\n")
+        // REM  NO TAGLINE HERE — his correction, 2026-09-28: "file commander first, media second" was
+        // REM  his direction to Claude "behind the scenes and not meant to be public", and the app
+        // REM  handles no media yet, so printing it was a claim the app cannot back. Shipped text
+        // REM  says only what the app DOES. His priorities stay in the rem lines, not on screen.
         add(BuildStamp.summary + "\n\n")
 
         // REM  His web addresses (Links.swift) — clickable. Also in the Help menu.

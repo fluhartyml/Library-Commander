@@ -1,6 +1,6 @@
 # Library Commander
 
-A two-pane file commander for the Mac. **A file commander first, and a media organizer and player second.**
+A two-pane file commander for the Mac.
 
 Rebuilt from Hello World on 2026-09-28 (build 38). Everything before that is on the tag `archive-build-37`.
 
