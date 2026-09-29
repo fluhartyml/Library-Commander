@@ -90,10 +90,12 @@ final class KeyRouter {
         if typing { return false }
 
         switch event.keyCode {
-        case 126 where command:          // ⌘↑  up one folder
-            pane.goUp()
-        case 125 where command:          // ⌘↓  open the highlighted folder (Finder's shortcut)
-            pane.openSelected()
+        // REM  ⌘↑ / ⌘↓ — his ask, 2026-09-28, build 63: "can command up and down move up one and down
+        // REM  one too so i dont have to release the sticky keys?" With Sticky Keys, ⌘ stays latched
+        // REM  between ⌘-arrow moves, so while ARROW MOVE AND COPY is on, ⌘↑/⌘↓ step the highlight
+        // REM  one row. With it off they keep Finder's meaning (up a folder / open the folder).
+        case 126 where flags == .command, 125 where flags == .command:
+            commander.commandUpDown(up: event.keyCode == 126)
         case 126 where flags.isEmpty:    // ↑
             pane.moveSelection(by: -1)
         case 125 where flags.isEmpty:    // ↓

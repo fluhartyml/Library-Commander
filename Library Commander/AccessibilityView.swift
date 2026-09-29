@@ -39,7 +39,7 @@ struct AccessibilityView: View {
             // REM  DESTINATION, never left and right: either pane can be either (his correction).
             Section("Arrow keys") {
                 Toggle("Move and copy with the arrow keys", isOn: $arrowMoveCopy)
-                Text("⌘ + the arrow pointing at the other pane moves the highlighted files there. ⇧⌘ + that arrow copies them. The arrow pointing back at the active pane undoes that last move or copy — all of its files at once.")
+                Text("⌘ + the arrow pointing at the other pane moves the highlighted files there. ⇧⌘ + that arrow copies them. The arrow pointing back at the active pane undoes that last move or copy — all of its files at once. While this is on, ⌘↑ and ⌘↓ move the highlight one row, so ⌘ can stay held (Sticky Keys); up a folder is the (^).. button.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

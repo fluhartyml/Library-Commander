@@ -139,4 +139,21 @@ struct ArrowMoveCopyTests {
         #expect(String(decoding: try Data(contentsOf: src), as: UTF8.self) == "new")    // back in the source
         #expect(String(decoding: try Data(contentsOf: dst), as: UTF8.self) == "old!")   // old one restored
     }
+
+    @Test func commandUpDownStepOneRowWhenOn() throws {
+        // REM  Build 63: "so i dont have to release the sticky keys"
+        let (commander, source, _) = try setUp()
+        pick(commander, ["a.mp4"])
+        commander.commandUpDown(up: false)
+        #expect(commander.left.selectedEntry?.name == "b.mp4")
+        commander.commandUpDown(up: true)
+        #expect(commander.left.selectedEntry?.name == "a.mp4")
+        #expect(commander.left.currentURL?.standardizedFileURL.path == source.standardizedFileURL.path)
+    }
+
+    @Test func commandUpKeepsFindersMeaningWhenOff() throws {
+        let (commander, _, _) = try setUp(on: false)
+        commander.commandUpDown(up: true)                                   // at the top: the drive list
+        #expect(commander.left.showingDrives)
+    }
 }

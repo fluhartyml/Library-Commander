@@ -339,6 +339,19 @@ final class CommanderModel {
         }
     }
 
+    /// ⌘↑ / ⌘↓. Arrow move and copy ON → one row up or down (so ⌘ can stay latched by Sticky
+    /// Keys). OFF → Finder's meaning: up a folder, or open the highlighted folder.
+    func commandUpDown(up: Bool) {
+        let pane = activePane
+        if arrowMoveCopyOn {
+            pane.moveSelection(by: up ? -1 : 1)
+        } else if up {
+            pane.goUp()
+        } else {
+            pane.openSelected()
+        }
+    }
+
     /// The arrow back: the whole last forward, reversed.
     func undoLastForward() {
         guard notBusy() else { return }
