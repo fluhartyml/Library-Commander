@@ -70,7 +70,11 @@ final class KeyRouter {
         // Typing into a text box — the keys belong to it.
         if window.firstResponder is NSText { return false }
 
+        // REM  macOS marks the ARROW keys with two flags of its own — .function and .numericPad —
+        // REM  that no one is holding. Left in, "↑ with no modifiers" and "⇧↑" never match.
+        // REM  Only keys the person holds (⌘ ⇧ ⌥ ⌃) count. The debug log still records the raw flags.
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            .subtracting([.function, .numericPad])
         let command = flags.contains(.command)
         let pane = commander.activePane
 
@@ -89,6 +93,10 @@ final class KeyRouter {
             pane.moveSelection(by: -1)
         case 125 where flags.isEmpty:    // ↓
             pane.moveSelection(by: 1)
+        case 126 where flags == .shift:  // ⇧↑  grow the highlight upward (multi-select, build 59)
+            pane.moveSelection(by: -1, extend: true)
+        case 125 where flags == .shift:  // ⇧↓  grow the highlight downward
+            pane.moveSelection(by: 1, extend: true)
         case 36, 76:                     // Return, Enter  open the highlighted folder
             guard flags.isEmpty else { return false }
             pane.openSelected()

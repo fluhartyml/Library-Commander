@@ -61,6 +61,15 @@ final class StateStore {
         defaults.set(selectedPath, forKey: key(side, "selectedPath"))
     }
 
+    /// MULTI-SELECT (build 59): every highlighted row, not just the cursor row.
+    func save(selectedPaths: [String], for side: String) {
+        defaults.set(selectedPaths, forKey: key(side, "selectedPaths"))
+    }
+
+    func selectedPaths(for side: String) -> [String] {
+        defaults.stringArray(forKey: key(side, "selectedPaths")) ?? []
+    }
+
     // MARK: - Granted folders and drives
 
     // REM  Every drive or folder he has ever granted, as [path: bookmark]. Picking a drive or

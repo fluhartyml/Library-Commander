@@ -89,10 +89,35 @@ final class PaneModel {
     /// What happened when a row was opened from the keyboard or a double-click — so the view can
     /// report it, or ask him for permission when a drive has never been granted.
     @ObservationIgnored var onOpen: ((GoResult, URL) -> Void)?
-    /// The highlighted row, by path. nil = nothing highlighted. Saved on every change.
+    /// The CURSOR row, by path — the one the arrows move from and single-item commands use.
+    /// nil = nothing highlighted. Saved on every change.
+    /// REM  Setting it the ordinary way (a plain click, an arrow, opening a folder) makes it the ONLY
+    /// REM  highlighted row, as in Finder. ⌘-click and ⇧-click go through `click(_:command:shift:)`,
+    /// REM  which grows `selection` instead.
     var selectedID: FileEntry.ID? {
-        didSet { store.save(selectedPath: selectedID, for: side) }
+        didSet {
+            store.save(selectedPath: selectedID, for: side)
+            if !extending {
+                selection = selectedID.map { [$0] } ?? []
+                anchorID = selectedID
+            }
+        }
     }
+
+    // REM  MULTI-SELECT, LIKE FINDER — his ask, 2026-09-28: "i cant multi select" → "yes like finder".
+    // REM   • click            → just that row
+    // REM   • ⌘-click          → add or remove that row
+    // REM   • ⇧-click          → every row from the anchor to that row
+    // REM   • ⇧↑ / ⇧↓          → grow or shrink the range from the anchor
+    // REM  Every file command then acts on ALL highlighted rows. Saved, like everything else.
+    /// Every highlighted row, by path.
+    private(set) var selection: Set<FileEntry.ID> = [] {
+        didSet { store.save(selectedPaths: Array(selection), for: side) }
+    }
+    /// Where a ⇧ range starts — the last row clicked without ⇧.
+    private(set) var anchorID: FileEntry.ID?
+    /// True while `selectedID` is being moved WITHOUT resetting the selection.
+    @ObservationIgnored private var extending = false
     /// Shown in the pane when a folder cannot be read.
     private(set) var errorMessage: String?
     /// Set when the saved folder is not reachable — usually a drive that is not connected.
@@ -124,6 +149,52 @@ final class PaneModel {
 
     var selectedEntry: FileEntry? {
         selectedIndex.map { rows[$0].entry }
+    }
+
+    func isSelected(_ id: FileEntry.ID) -> Bool { selection.contains(id) }
+
+    /// Every highlighted row, top to bottom.
+    /// REM  A folder AND something inside it (both revealed and highlighted) → only the folder:
+    /// REM  it already carries what is inside, and copying both would copy the inner one twice.
+    var selectedEntries: [FileEntry] {
+        let picked = rows.filter { selection.contains($0.id) }.map(\.entry)
+        return picked.filter { entry in
+            !picked.contains { other in other.id != entry.id && other.isFolder
+                && StateStore.path(entry.id, isInside: other.id) }
+        }
+    }
+
+    // MARK: - Clicks and ranges (multi-select)
+
+    /// A click on a row, with the modifier keys that were held.
+    func click(_ id: FileEntry.ID, command: Bool, shift: Bool) {
+        // REM  The drive list is one-at-a-time: a drive is opened, never copied as a batch.
+        guard !showingDrives, command || shift else { selectedID = id; return }
+        if shift {
+            select(rangeTo: id)
+        } else {                                                   // ⌘-click: add or remove
+            var next = selection
+            if next.contains(id) { next.remove(id) } else { next.insert(id) }
+            setCursor(next.contains(id) ? id : rows.last { next.contains($0.id) }?.id, keeping: next)
+            anchorID = id
+        }
+    }
+
+    /// Every row from the anchor to `id`. The anchor stays where it is.
+    private func select(rangeTo id: FileEntry.ID) {
+        guard let anchor = anchorID ?? selectedID,
+              let a = rows.firstIndex(where: { $0.id == anchor }),
+              let b = rows.firstIndex(where: { $0.id == id }) else { selectedID = id; return }
+        let range = rows[min(a, b)...max(a, b)].map(\.id)
+        setCursor(id, keeping: Set(range))
+    }
+
+    /// Moves the cursor without the plain-click reset, and sets the whole selection.
+    private func setCursor(_ id: FileEntry.ID?, keeping set: Set<FileEntry.ID>) {
+        extending = true
+        selectedID = id
+        extending = false
+        selection = set
     }
 
     /// (^).. and ⌘↑. Inside the chosen folder it goes up one folder; at its top it shows the
@@ -173,7 +244,11 @@ final class PaneModel {
             showDrives()
             return
         }
+        // REM  Read the saved multi-highlight BEFORE show(): show() sets the cursor row, which
+        // REM  saves a one-row highlight over it.
+        let savedSelection = Set(store.selectedPaths(for: side))
         show(folder: folder, highlight: place.selectedPath)
+        keepSelection(savedSelection, anchor: place.selectedPath)
     }
 
     private func isInsideRoot(_ path: String) -> Bool {
@@ -290,11 +365,21 @@ final class PaneModel {
         selectedID = here?.id ?? rows.first?.id
     }
 
-    /// Re-reads the folder, keeping the highlight on the same file if it is still there.
+    /// Re-reads the folder, keeping the highlight on the same files if they are still there.
     func reload() {
         if showingDrives { showDrives(); return }
         guard let currentURL else { return }
+        let kept = selection, anchor = anchorID
         show(folder: currentURL, highlight: selectedID)
+        keepSelection(kept, anchor: anchor)
+    }
+
+    /// After a re-read: every highlighted row that still exists stays highlighted.
+    private func keepSelection(_ kept: Set<FileEntry.ID>, anchor: FileEntry.ID?) {
+        let still = kept.filter { id in rows.contains { $0.id == id } }
+        guard still.count > 1 else { return }
+        setCursor(selectedID ?? rows.last { still.contains($0.id) }?.id, keeping: still)
+        anchorID = anchor.flatMap { a in still.contains(a) ? a : nil } ?? selectedID
     }
 
     /// Re-reads the folder and highlights one particular file — e.g. a file he just renamed.
@@ -425,11 +510,16 @@ final class PaneModel {
 
     /// ↑ is -1, ↓ is +1. Stops at the first and last rows — it does not wrap around.
     /// With nothing highlighted, any move highlights the first row.
-    func moveSelection(by offset: Int) {
+    func moveSelection(by offset: Int, extend: Bool = false) {
         guard !rows.isEmpty else { selectedID = nil; return }
         guard let index = selectedIndex else { selectedID = rows.first?.id; return }
         let target = min(max(index + offset, 0), rows.count - 1)
-        selectedID = rows[target].id
+        // REM  ⇧↑ / ⇧↓ grow or shrink the range from the anchor, the way Finder does.
+        if extend && !showingDrives {
+            select(rangeTo: rows[target].id)
+        } else {
+            selectedID = rows[target].id
+        }
     }
 
     // MARK: - Copy target (where a copy or move INTO this pane lands)
@@ -458,7 +548,9 @@ final class PaneModel {
     /// showing the drive list — a drive must be opened first, which may need his permission).
     var copyTarget: CopyTarget? {
         guard !showingDrives, let currentURL else { return nil }
-        if let entry = selectedEntry, Self.canReceive(entry) {
+        // REM  Several rows highlighted in the destination → no one folder is THE target, so the
+        // REM  open folder is. (Only a single highlighted folder is dropped INTO.)
+        if selection.count <= 1, let entry = selectedEntry, Self.canReceive(entry) {
             return .highlightedFolder(entry.url)
         }
         return .openFolder(currentURL)
@@ -497,7 +589,9 @@ final class PaneModel {
             revealed.insert(entry.id)
         }
         store.save(revealed: Array(revealed), for: side)
+        let kept = selection, anchor = anchorID
         rebuildRows()
+        keepSelection(kept, anchor: anchor)
     }
 
     /// `entries`, with each revealed folder's contents under it — read fresh from the disk,

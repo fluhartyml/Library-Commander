@@ -122,13 +122,20 @@ nonisolated final class TransferEngine: @unchecked Sendable {
 
     /// Copy or move `item` into `folder`, asking about every clash.
     func run(_ item: URL, into folder: URL) async throws -> TransferSummary {
-        if let refusal = FileOps.refusal(item, into: folder) { throw refusal }
-        // REM  More clashes can follow only when a folder may be merged into another.
-        let landing = FileOps.destination(of: item, in: folder)
-        moreMayFollow = FileFacts.of(item).isMergeableFolder
-            && FileManager.default.fileExists(atPath: landing.path)
+        try await run([item], into: folder)
+    }
+
+    /// Copy or move SEVERAL items (multi-select, build 59) as ONE job: one Stop ends all of it,
+    /// and a "do the same" answer covers the rest of the job.
+    func run(_ items: [URL], into folder: URL) async throws -> TransferSummary {
+        // REM  Refuse the impossible for ANY item before touching the first — never half a job.
+        for item in items { if let refusal = FileOps.refusal(item, into: folder) { throw refusal } }
+        // REM  More clashes can follow when there are several items, or a folder may be merged.
+        let clashes = items.filter { FileManager.default.fileExists(atPath: FileOps.destination(of: $0, in: folder).path) }
+        moreMayFollow = clashes.count > 1
+            || clashes.contains { FileFacts.of($0).isMergeableFolder }
         do {
-            try await process(item, into: folder)
+            for item in items { try await process(item, into: folder) }
         } catch is Stopped {
             summary.stopped = true
         }

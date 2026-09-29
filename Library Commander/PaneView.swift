@@ -402,7 +402,8 @@ struct PaneView: View {
     }
 
     private func row(_ entry: FileEntry, depth: Int) -> some View {
-        let selected = entry.id == pane.selectedID
+        // REM  Every highlighted row is filled (multi-select, build 59).
+        let selected = pane.isSelected(entry.id)
         return HStack(spacing: 8) {
             // REM  Indent one step per revealed level, like Finder's list view.
             Color.clear.frame(width: CGFloat(depth) * 22, height: 1)
@@ -455,7 +456,9 @@ struct PaneView: View {
         }
         .onTapGesture {
             onActivate()
-            pane.selectedID = entry.id
+            // REM  ⌘-click adds or removes a row; ⇧-click takes the range — like Finder.
+            let held = NSEvent.modifierFlags
+            pane.click(entry.id, command: held.contains(.command), shift: held.contains(.shift))
         }
         .contextMenu { rowMenu(entry) }
     }
@@ -468,7 +471,12 @@ struct PaneView: View {
     // REM  so the command acts on the row he clicked.
     @ViewBuilder
     private func rowMenu(_ entry: FileEntry) -> some View {
-        let pick = { onActivate(); pane.selectedID = entry.id }
+        // REM  Like Finder: right-clicking a row that is PART of the highlight acts on ALL of it;
+        // REM  right-clicking any other row highlights just that row first.
+        let inSelection = pane.isSelected(entry.id)
+        let count = inSelection ? pane.selectedEntries.count : 1
+        let many = count > 1 ? " \(count) Items" : ""
+        let pick = { onActivate(); if !inSelection { pane.selectedID = entry.id } }
         if entry.drive != nil {
             Button("Open") { pick(); pane.openSelected() }
         } else {
@@ -478,14 +486,18 @@ struct PaneView: View {
                 Button("Open") { pick(); command(4) }
             }
             Button("Quick Look") { pick(); command(3) }
-            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
+            Button("Show\(many) in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting(inSelection ? pane.selectedEntries.map(\.url) : [entry.url])
+            }
+            if count == 1 {
+                Divider()
+                Button("Rename…") { pick(); command(9) }
+            }
             Divider()
-            Button("Rename…") { pick(); command(9) }
+            Button("Copy\(many) to Other Pane") { pick(); command(5) }
+            Button("Move\(many) to Other Pane") { pick(); command(6) }
             Divider()
-            Button("Copy to Other Pane") { pick(); command(5) }
-            Button("Move to Other Pane") { pick(); command(6) }
-            Divider()
-            Button("Move to Trash") { pick(); command(8) }
+            Button("Move\(many) to Trash") { pick(); command(8) }
             Divider()
             Button("New Folder") { onActivate(); command(7) }
         }

@@ -142,6 +142,8 @@ final class CommanderModel {
 
     /// Set to show a file in Quick Look (⌘3). The window watches it.
     var quickLookURL: URL?
+    /// Everything highlighted, so Quick Look's arrows step through all of them.
+    var quickLookURLs: [URL] = []
 
     /// What is running right now — a copy or move of a big file takes time. nil = nothing.
     private(set) var busy: String?
@@ -158,21 +160,24 @@ final class CommanderModel {
 
     /// ⌘3 — Quick Look the highlighted file, the way the space bar does in Finder.
     func view() {
-        guard let item = highlightedItem(for: "view") else { return }
-        quickLookURL = item.url
+        guard let items = highlightedItems(for: "view") else { return }
+        quickLookURLs = items.map(\.url)
+        quickLookURL = activePane.selectedEntry?.url ?? items.first?.url
     }
 
     /// ⌘4 — open the highlighted file in the app macOS uses for it.
     func edit() {
-        guard let item = highlightedItem(for: "edit") else { return }
-        if item.isFolder && !item.isPackage {
-            report("⌘4 opens files — “\(item.name)” is a folder. Press Return to open it here.", problem: true)
+        guard let items = highlightedItems(for: "edit") else { return }
+        let files = items.filter { !$0.isFolder || $0.isPackage }
+        guard !files.isEmpty else {
+            report("⌘4 opens files — “\(items[0].name)” is a folder. Press Return to open it here.", problem: true)
             return
         }
-        if NSWorkspace.shared.open(item.url) {
-            report("Opened “\(item.name)” in its app.")
+        let opened = files.filter { NSWorkspace.shared.open($0.url) }
+        if opened.count == files.count {
+            report(files.count == 1 ? "Opened “\(files[0].name)” in its app." : "Opened \(files.count) files in their apps.")
         } else {
-            report("macOS has no app to open “\(item.name)”.", problem: true)
+            report("macOS has no app for \(files.count - opened.count) of them; opened \(opened.count).", problem: true)
         }
     }
 
@@ -187,7 +192,12 @@ final class CommanderModel {
 
     /// ⌘9 — the Rename sheet for the highlighted row.
     func rename() {
-        guard notBusy(), highlightedItem(for: "rename") != nil else { return }
+        guard notBusy(), let items = highlightedItems(for: "rename") else { return }
+        // REM  Rename is one item at a time. (Finder's batch rename is a separate tool — not built.)
+        guard items.count == 1 else {
+            report("Rename works on one item — \(items.count) are highlighted. Click just one.", problem: true)
+            return
+        }
         activePane.askingRename = true
     }
 
@@ -213,67 +223,85 @@ final class CommanderModel {
 
     /// ⌘8 — the highlighted row goes to the Trash, and the next row lights up.
     func deleteHighlighted() {
-        guard notBusy(), let item = highlightedItem(for: "delete") else { return }
+        guard notBusy(), let items = highlightedItems(for: "delete") else { return }
         let pane = activePane
-        let index = pane.selectedIndex
-        do {
-            lastTrashed = try FileOps.trash(item.url)
-            pane.reloadAfterRemoving(rowAt: index)
-            destinationPane.reload()
-            report("Moved “\(item.name)” to the Trash.")
-        } catch {
-            report("“\(item.name)” was NOT deleted — \(Self.explain(error, name: item.name, verb: "delete"))", problem: true)
+        // REM  The next row to light up is the one after the FIRST removed row.
+        let index = items.compactMap { item in pane.rows.firstIndex { $0.id == item.id } }.min()
+        var failed: [String] = []
+        trashedThisTime = []
+        for item in items {
+            do {
+                let inTrash = try FileOps.trash(item.url)
+                trashedThisTime.append(inTrash)
+                lastTrashed = inTrash ?? lastTrashed
+            } catch { failed.append("“\(item.name)”: \(Self.explain(error, name: item.name, verb: "delete"))") }
+        }
+        pane.reloadAfterRemoving(rowAt: index)
+        destinationPane.reload()
+        if failed.isEmpty {
+            report(items.count == 1 ? "Moved “\(items[0].name)” to the Trash." : "Moved \(items.count) items to the Trash.")
+        } else {
+            report("\(failed.count) NOT deleted — \(failed.joined(separator: " · "))", problem: true)
         }
     }
+
+    /// Every Trash location from the last delete. REM  The tests take their own files back out.
+    @ObservationIgnored var trashedThisTime: [URL?] = []
 
     /// ⌘5 copy / ⌘6 move — the highlighted row of the source into the target.
     /// REM  The work runs off the main thread, so the window stays live during a long copy.
     /// REM  A name clash stops and ASKS (build 57) — see TransferEngine.swift for his rulings.
     func transfer(move: Bool) {
         let verb = move ? "move" : "copy"
-        guard notBusy(), let item = highlightedItem(for: verb) else { return }
+        guard notBusy(), let items = highlightedItems(for: verb) else { return }
         guard let target = destinationPane.copyTarget else {
             report("Nowhere to \(verb) to — open a folder in the other pane first.", problem: true)
             return
         }
         let source = activePane
-        let index = source.selectedIndex
+        let index = items.compactMap { item in source.rows.firstIndex { $0.id == item.id } }.min()
         let targetName = FileManager.default.displayName(atPath: target.url.path)
-        let landing = FileOps.destination(of: item.url, in: target.url)
+        let name = items.count == 1 ? items[0].name : "\(items.count) items"
         // REM  Refuse the impossible at once (into itself, same folder) — no sheet, no spinner.
-        if let refusal = FileOps.refusal(item.url, into: target.url) {
-            report(Self.explain(refusal, name: item.name, verb: verb, targetName: targetName), problem: true)
-            return
+        for item in items {
+            if let refusal = FileOps.refusal(item.url, into: target.url) {
+                report(Self.explain(refusal, name: item.name, verb: verb, targetName: targetName), problem: true)
+                return
+            }
         }
 
-        busy = "\(move ? "Moving" : "Copying") “\(item.name)” to \(targetName)…"
+        busy = "\(move ? "Moving" : "Copying") “\(name)” to \(targetName)…"
         busyBytes = nil
         busyCount = nil
         report(busy!)
-        // A single file with nothing in the way: a byte count that climbs.
-        if !FileManager.default.fileExists(atPath: landing.path) { startProgress(item: item, landing: landing) }
+        // One file with nothing in the way: a byte count that climbs.
+        if items.count == 1, let only = items.first,
+           !FileManager.default.fileExists(atPath: FileOps.destination(of: only.url, in: target.url).path) {
+            startProgress(item: only, landing: FileOps.destination(of: only.url, in: target.url))
+        }
+        let countItems = items.count > 1 || items[0].isFolder
 
         let engine = TransferEngine(move: move,
                                     ask: { clash in await self.ask(clash) },
-                                    progress: { done in await MainActor.run { if item.isFolder { self.busyCount = done } } })
-        let from = item.url, into = target.url
+                                    progress: { done in await MainActor.run { if countItems { self.busyCount = done } } })
+        let urls = items.map(\.url), into = target.url
         Task.detached(priority: .userInitiated) {
             let outcome: Result<TransferSummary, Error>
-            do { outcome = .success(try await engine.run(from, into: into)) }
+            do { outcome = .success(try await engine.run(urls, into: into)) }
             catch { outcome = .failure(error) }
             await MainActor.run {
                 self.stopProgress()
                 // REM  Whatever happened, both panes show the disk as it is now.
-                let itemGone = !FileManager.default.fileExists(atPath: from.path)
-                if move && itemGone { source.reloadAfterRemoving(rowAt: index) } else { source.reload() }
+                let anyGone = urls.contains { !FileManager.default.fileExists(atPath: $0.path) }
+                if move && anyGone { source.reloadAfterRemoving(rowAt: index) } else { source.reload() }
                 self.destinationPane.reload()
                 switch outcome {
                 case .success(let summary):
                     self.lastTransfer = summary
-                    self.report(Self.describe(summary, name: item.name, move: move, targetName: targetName),
+                    self.report(Self.describe(summary, name: name, move: move, targetName: targetName),
                                 problem: summary.stopped)
                 case .failure(let error):
-                    self.report(Self.explain(error, name: item.name, verb: verb, targetName: targetName), problem: true)
+                    self.report(Self.explain(error, name: name, verb: verb, targetName: targetName), problem: true)
                 }
             }
         }
@@ -324,6 +352,13 @@ final class CommanderModel {
     }
 
     // MARK: - Helpers for the commands
+
+    /// Every highlighted row of the active pane, or nil with a status message saying why not.
+    private func highlightedItems(for verb: String) -> [FileEntry]? {
+        guard highlightedItem(for: verb) != nil else { return nil }
+        let items = activePane.selectedEntries
+        return items.isEmpty ? nil : items
+    }
 
     /// The highlighted row of the active pane, or nil with a status message saying why not.
     private func highlightedItem(for verb: String) -> FileEntry? {

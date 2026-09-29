@@ -44,7 +44,8 @@ struct ContentView: View {
         }
         // ⌘3 View — Quick Look, the same preview Finder's space bar gives.
         .quickLookPreview(Binding(get: { commander.quickLookURL },
-                                  set: { commander.quickLookURL = $0 }))
+                                  set: { commander.quickLookURL = $0 }),
+                          in: commander.quickLookURLs)
         // REM  THE CLASH SHEET (build 57): a copy or move waits here while he decides.
         .sheet(item: Binding(get: { commander.pendingClash }, set: { _ in })) { clash in
             ClashSheet(clash: clash) { choice, all in commander.answer(choice, applyToAll: all) }
