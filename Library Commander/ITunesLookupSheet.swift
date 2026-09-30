@@ -27,30 +27,64 @@ final class ITunesLookupRun {
         var ticked = false
         /// After Rename: what happened, in words. Nil = not renamed yet.
         var result: String?
+        /// Which lookup gave the outcome — Shazam words its failures differently.
+        var bySource: Source = .iTunes
     }
 
+    /// iTunes searches by name; Shazam listens (step 3 — the last resort).
+    enum Source { case iTunes, shazam }
+
+    /// What the sheet was opened for.
+    let source: Source
     private(set) var items: [Item]
     private(set) var running = false
+    /// Files looked up so far in the current pass, and how many that pass holds.
     private(set) var done = 0
+    private(set) var passTotal = 0
     private var task: Task<Void, Never>?
 
-    init(files: [FileEntry]) {
+    init(files: [FileEntry], source: Source = .iTunes) {
+        self.source = source
         items = files.map { Item(url: $0.url, isVideo: $0.kind == .video) }
     }
 
     var tickedCount: Int { items.filter { $0.ticked && $0.result == nil }.count }
 
+    /// Files the lookups left alone, not yet tried with Shazam — the last resort's list.
+    var leftAlone: [Int] {
+        items.indices.filter { i in
+            guard items[i].result == nil, items[i].bySource == .iTunes, let o = items[i].outcome else { return false }
+            if case .found = o { return false }
+            return true
+        }
+    }
+
     func start() {
         guard task == nil else { return }
+        run(Array(items.indices), with: source)
+    }
+
+    /// Step 3's hand-off: Shazam the files iTunes could not name.
+    func shazamLeftAlone() {
+        guard !running else { return }
+        run(leftAlone, with: .shazam)
+    }
+
+    private func run(_ indices: [Int], with lookup: Source) {
         running = true
+        done = 0
+        passTotal = indices.count
         let format = NameFormat.load()
         task = Task {
-            for i in items.indices {
+            for (n, i) in indices.enumerated() {
                 if Task.isCancelled { break }
-                if i > 0 { try? await Task.sleep(for: ITunesLookup.spacing) }
+                if n > 0 { try? await Task.sleep(for: ITunesLookup.spacing) }
                 if Task.isCancelled { break }
-                let outcome = await ITunesLookup.lookup(items[i].url, isVideo: items[i].isVideo)
+                let outcome = lookup == .shazam
+                    ? await ShazamLookup.lookup(items[i].url)
+                    : await ITunesLookup.lookup(items[i].url, isVideo: items[i].isVideo)
                 items[i].outcome = outcome
+                items[i].bySource = lookup
                 if case .found(let hit) = outcome,
                    let name = NameFormat.fileName(format, values: hit.nameValues,
                                                   ext: items[i].url.pathExtension) {
@@ -58,7 +92,7 @@ final class ITunesLookupRun {
                     // REM  Already named right → nothing to tick.
                     items[i].ticked = name != items[i].url.lastPathComponent
                 }
-                done = i + 1
+                done = n + 1
             }
             running = false
         }
@@ -102,7 +136,7 @@ struct ITunesLookupSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("iTunes Lookup").bold()
+            Text(run.source == .shazam ? "Shazam" : "iTunes Lookup").bold()
             Text(progressLine).foregroundStyle(.secondary)
 
             List {
@@ -116,6 +150,10 @@ struct ITunesLookupSheet: View {
                 Spacer()
                 if run.running {
                     Button("Stop") { run.stop() }
+                } else if run.source == .iTunes, !run.leftAlone.isEmpty {
+                    // REM  Step 3 — the last resort: listen to what the name could not identify.
+                    Button("Shazam the \(run.leftAlone.count) left alone") { run.shazamLeftAlone() }
+                        .help("Shazam listens to each one's sound — songs and music videos — and names it from what it hears.")
                 }
                 Button("Close") {
                     run.stop()
@@ -125,7 +163,7 @@ struct ITunesLookupSheet: View {
                 Button("Rename \(run.tickedCount)") {
                     let (renamed, refused) = run.renameTicked()
                     reload()
-                    report("iTunes: renamed \(renamed)" + (refused > 0 ? ", left \(refused) alone — the list says why." : "."),
+                    report("Renamed \(renamed)" + (refused > 0 ? ", left \(refused) alone — the list says why." : "."),
                            refused > 0)
                 }
                 .keyboardShortcut(.defaultAction)
@@ -139,11 +177,11 @@ struct ITunesLookupSheet: View {
     }
 
     private var progressLine: String {
-        let total = run.items.count
+        let total = run.passTotal
         if run.running {
             let left = (total - run.done) * 3
             let time = left >= 120 ? "about \(left / 60) minutes left" : "about \(left) seconds left"
-            return "Looking up \(run.done) of \(total) — \(time) (Apple allows about 20 searches a minute)."
+            return "Looking up \(run.done) of \(total) — \(time), 3 seconds apart."
         }
         return run.done == total ? "Looked up all \(total)." : "Stopped after \(run.done) of \(total)."
     }
@@ -174,10 +212,13 @@ struct ITunesLookupSheet: View {
         case nil: return "Waiting…"
         case .found:
             guard let name = item.newName else { return "Found, but the name format gave nothing." }
-            return name == item.url.lastPathComponent ? "Already named right." : "→ \(name)"
+            let by = item.bySource == .shazam ? " (Shazam)" : ""
+            return name == item.url.lastPathComponent ? "Already named right\(by)." : "→ \(name)\(by)"
         case .notTrusted(let hit): return "Left alone — Apple's closest was “\(hit.artist) - \(hit.title)”, not a match."
-        case .noResults: return "Left alone — Apple found nothing."
-        case .noSearchTerms: return "Left alone — the name says nothing to search for (Shazam, step 3)."
+        case .noResults:
+            return item.bySource == .shazam ? "Left alone — Shazam did not recognise it."
+                                            : "Left alone — Apple found nothing."
+        case .noSearchTerms: return "Left alone — the name says nothing to search for."
         case .failed(let why): return "Left alone — \(why)"
         }
     }

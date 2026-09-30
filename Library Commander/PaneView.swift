@@ -227,12 +227,21 @@ struct PaneView: View {
 
             Button {
                 onActivate()
-                startITunesLookup()
+                startLookup(.iTunes)
             } label: {
                 Label("iTunes", systemImage: "magnifyingglass")
             }
             .disabled(pane.currentURL == nil || pane.showingDrives)
             .help("Look the highlighted songs and music videos up in Apple's catalog and rename them to the Name Format — or, with nothing highlighted, every one in this folder. Shows old → new first; nothing is renamed until you press Rename.")
+
+            Button {
+                onActivate()
+                startLookup(.shazam)
+            } label: {
+                Label("Shazam", systemImage: "shazam.logo")
+            }
+            .disabled(pane.currentURL == nil || pane.showingDrives)
+            .help("The last resort: listen to the highlighted songs and music videos and name them from what Shazam hears. Shows old → new first; nothing is renamed until you press Rename.")
 
             Spacer(minLength: 0)
         }
@@ -250,7 +259,7 @@ struct PaneView: View {
     }
 
     /// The highlighted songs and music videos; with nothing highlighted, all of them in this folder.
-    private func startITunesLookup() {
+    private func startLookup(_ source: ITunesLookupRun.Source) {
         let picked = pane.selectedEntries
         let pool = picked.isEmpty ? pane.entries : picked
         let media = pool.filter { !$0.isFolder && ($0.kind == .audio || $0.kind == .video) }
@@ -259,7 +268,7 @@ struct PaneView: View {
                                   : "Nothing highlighted is a song or music video.", true)
             return
         }
-        iTunesRun = ITunesLookupRun(files: media)
+        iTunesRun = ITunesLookupRun(files: media, source: source)
     }
 
     // MARK: - Toolbar: Sort · New Folder · Refresh · Show Hidden
