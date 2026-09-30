@@ -36,11 +36,14 @@ struct PaneView: View {
     @State private var drives: [Drive] = []
     @State private var newFolderName = "untitled folder"
     @State private var renameText = ""
+    @State private var showingNameFormat = false
 
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            Divider()
+            mediaToolbar
             Divider()
             toolbar
             Divider()
@@ -202,6 +205,33 @@ struct PaneView: View {
     /// The path box shows where the pane really is: the folder's path, or empty on the drive list.
     private func syncPath() {
         pathText = pane.showingDrives ? "" : (pane.currentURL?.path ?? "")
+    }
+
+    // MARK: - Media row: Name Format… (iTunes and Shazam come next)
+
+    // REM  His ask, 2026-09-30: "add a third row of tool above sort name new folder refresh and
+    // REM  show hidden" — the media tools, built one step at a time so every button works the day
+    // REM  it appears (no dead buttons). Step 1 = Name Format…; step 2 = iTunes lookup (audio AND
+    // REM  music videos); step 3 = Shazam, last resort; step 4 = the matching Settings section.
+    // REM  Its own row, ABOVE the file tools, so media never crowds the file tools out.
+    private var mediaToolbar: some View {
+        HStack(spacing: 12) {
+            Button {
+                onActivate()
+                showingNameFormat = true
+            } label: {
+                Label("Name Format…", systemImage: "textformat")
+            }
+            .help("How a song or music video is named when it is looked up. Standard: Artist - Title - Album.")
+
+            Spacer(minLength: 0)
+        }
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .sheet(isPresented: $showingNameFormat) {
+            NameFormatSheet(isPresented: $showingNameFormat, report: report)
+        }
     }
 
     // MARK: - Toolbar: Sort · New Folder · Refresh · Show Hidden
