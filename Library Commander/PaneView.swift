@@ -37,6 +37,7 @@ struct PaneView: View {
     @State private var newFolderName = "untitled folder"
     @State private var renameText = ""
     @State private var showingNameFormat = false
+    @State private var iTunesRun: ITunesLookupRun?
 
 
     var body: some View {
@@ -224,6 +225,15 @@ struct PaneView: View {
             }
             .help("How a song or music video is named when it is looked up. Standard: Artist - Title - Album.")
 
+            Button {
+                onActivate()
+                startITunesLookup()
+            } label: {
+                Label("iTunes", systemImage: "magnifyingglass")
+            }
+            .disabled(pane.currentURL == nil || pane.showingDrives)
+            .help("Look the highlighted songs and music videos up in Apple's catalog and rename them to the Name Format — or, with nothing highlighted, every one in this folder. Shows old → new first; nothing is renamed until you press Rename.")
+
             Spacer(minLength: 0)
         }
         .buttonStyle(.borderless)
@@ -232,6 +242,24 @@ struct PaneView: View {
         .sheet(isPresented: $showingNameFormat) {
             NameFormatSheet(isPresented: $showingNameFormat, report: report)
         }
+        .sheet(item: $iTunesRun) { run in
+            ITunesLookupSheet(isPresented: Binding(get: { iTunesRun != nil },
+                                                   set: { if !$0 { iTunesRun = nil } }),
+                              run: run, report: report, reload: { pane.reload() })
+        }
+    }
+
+    /// The highlighted songs and music videos; with nothing highlighted, all of them in this folder.
+    private func startITunesLookup() {
+        let picked = pane.selectedEntries
+        let pool = picked.isEmpty ? pane.entries : picked
+        let media = pool.filter { !$0.isFolder && ($0.kind == .audio || $0.kind == .video) }
+        guard !media.isEmpty else {
+            report(picked.isEmpty ? "No songs or music videos in this folder."
+                                  : "Nothing highlighted is a song or music video.", true)
+            return
+        }
+        iTunesRun = ITunesLookupRun(files: media)
     }
 
     // MARK: - Toolbar: Sort · New Folder · Refresh · Show Hidden
